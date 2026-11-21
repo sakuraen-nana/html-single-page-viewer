@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FBFAF6">
 <title>单页预览</title>
 <style>
   :root{
@@ -20,16 +21,20 @@
     --danger: #B0453A;
     --well: #EDE9E0;
     --tab-h: 56px;
+    --sidebar-w: 300px;
+    --mono: ui-monospace, "SF Mono", Consolas, monospace;
     font-family: "Noto Sans CJK SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   }
   *{ box-sizing: border-box; margin: 0; padding: 0; }
   [hidden]{ display: none !important; }
   html, body{ height: 100%; }
   body{
+    height: 100vh;
+    height: 100dvh;
     background: var(--bg);
     color: var(--text);
     display: grid;
-    grid-template-columns: 300px minmax(0, 1fr);
+    grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
     overflow: hidden;
     -webkit-font-smoothing: antialiased;
   }
@@ -231,9 +236,23 @@
     position: relative;
     flex: 1;
     min-height: 0;
+    overflow: hidden;
     background: var(--well);
   }
-  iframe{
+  .frame-canvas{
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
+  }
+  .frame-scaler{
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    transform-origin: top left;
+    will-change: transform;
+  }
+  .frame-scaler iframe{
     width: 100%;
     height: 100%;
     border: 0;
@@ -243,6 +262,7 @@
   }
   .frame-mask{
     position: absolute; inset: 0;
+    z-index: 3;
     display: none;
     place-items: center;
     background: var(--well);
@@ -295,17 +315,242 @@
   .stage__error.is-visible{ display: grid; }
   .stage__error h2{ font-size: 15px; margin-bottom: 8px; color: var(--danger); }
   .stage__error p{ font-size: 13px; color: var(--muted); line-height: 1.8; max-width: 560px; }
+  .stage__frame > .placeholder,
+  .stage__frame > .stage__error{
+    position: absolute;
+    inset: 0;
+    height: auto;
+    z-index: 2;
+  }
 
-  @media (max-width: 860px){
-    body{ grid-template-columns: 240px minmax(0, 1fr); }
+  /* ── 底部状态与控制条 ─────────────────────────── */
+  .stage__hud{
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-height: 46px;
+    padding: 0 16px;
+    border-top: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .hud__status{
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-width: 0;
+  }
+  .hud__metric{
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    min-width: 0;
+    white-space: nowrap;
+  }
+  .hud__key{
+    font-size: 10px;
+    letter-spacing: .4px;
+    color: var(--faint);
+  }
+  .hud__value{
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .hud__zoom{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: min(370px, 42vw);
+    min-width: 220px;
+    margin-left: auto;
+  }
+  .hud__btn{
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 26px; height: 26px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .hud__btn:hover{ color: var(--text); border-color: var(--gold-line); background: #fff; }
+  .hud__btn:disabled{ opacity: .4; cursor: default; }
+  .hud__btn:disabled:hover{ color: var(--muted); border-color: var(--line); background: transparent; }
+  .hud__btn:focus-visible,
+  .hud__range:focus-visible{ outline: 2px solid var(--gold-line); outline-offset: 2px; }
+  .hud__btn svg{ width: 13px; height: 13px; }
+  .hud__range{
+    --fill: 42.86%;
+    flex: 1;
+    min-width: 72px;
+    height: 22px;
+    margin: 0;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+  .hud__range::-webkit-slider-runnable-track{
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(to right, var(--gold) 0 var(--fill), var(--line) var(--fill) 100%);
+  }
+  .hud__range::-webkit-slider-thumb{
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px; height: 16px;
+    margin-top: -6px;
+    border: 2px solid var(--gold);
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(43, 40, 34, .18);
+  }
+  .hud__range::-moz-range-track{
+    height: 4px;
+    border-radius: 999px;
+    background: var(--line);
+  }
+  .hud__range::-moz-range-progress{
+    height: 4px;
+    border-radius: 999px;
+    background: var(--gold);
+  }
+  .hud__range::-moz-range-thumb{
+    width: 14px; height: 14px;
+    border: 2px solid var(--gold);
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(43, 40, 34, .18);
+  }
+  .hud__zoom-readout{
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .hud__zoom-key{ font-size: 10px; color: var(--faint); }
+  .hud__zoom-value{
+    min-width: 42px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--gold);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (min-width: 1500px){
+    :root{ --sidebar-w: 336px; }
+  }
+  @media (max-width: 1180px){
+    .stage__hud{ flex-wrap: wrap; gap: 6px 16px; padding: 8px 14px; }
+    .hud__status{ flex: 1 1 100%; gap: 16px; }
+    .hud__zoom{ width: 100%; margin-left: 0; }
+  }
+  @media (max-width: 980px){
+    :root{ --sidebar-w: 248px; }
     .stage__src{ display: none; }
   }
-  @media (max-width: 640px){
-    body{ grid-template-columns: 1fr; grid-template-rows: 42vh 58vh; }
-    .sidebar{ border-right: 0; border-bottom: 1px solid var(--line); }
-    .tabs{ flex-direction: row; overflow-x: auto; overflow-y: hidden; }
-    .tab{ min-width: 220px; min-height: 0; height: 100%; }
-    .tab.is-active::before{ left: 10px; right: 10px; top: auto; bottom: -1px; width: auto; height: 3px; border-radius: 3px 3px 0 0; }
+  @media (max-width: 760px){
+    body{
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+    .sidebar{
+      max-height: 34dvh;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .sidebar__head{ padding: 10px 14px 8px; }
+    .sidebar__foot{ display: none; }
+    .tabs{
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 4px 10px 10px;
+      gap: 8px;
+      scroll-snap-type: x proximity;
+    }
+    .tab{
+      min-width: 176px;
+      min-height: 0;
+      height: 60px;
+      padding: 6px 9px 6px 10px;
+      grid-template-columns: 24px minmax(0, 1fr) 12px;
+      gap: 8px;
+      scroll-snap-align: start;
+    }
+    .tab__index{ width: 24px; height: 24px; }
+    .tab__title{ font-size: 12.5px; }
+    .tab__path{ font-size: 10px; }
+    .tab.is-active::before{
+      left: 10px; right: 10px; top: auto; bottom: -1px;
+      width: auto; height: 3px; border-radius: 3px 3px 0 0;
+    }
+    .stage__bar{ height: 44px; padding: 0 10px; gap: 8px; }
+    .stage__src{ display: none; }
+    .stage__name{ font-size: 12.5px; }
+    .stage__actions{ gap: 6px; }
+    .action{ height: 30px; padding: 0 9px; font-size: 11.5px; }
+    .stage__hud{
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 8px;
+      min-height: 0;
+      padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
+    }
+    .hud__status{
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+      width: 100%;
+    }
+    .hud__metric{
+      display: grid;
+      gap: 2px;
+      padding: 6px 8px;
+      border: 1px solid var(--line-soft);
+      border-radius: 8px;
+      background: var(--panel-2);
+      min-width: 0;
+    }
+    .hud__key{ font-size: 9px; letter-spacing: .3px; }
+    .hud__value{
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hud__zoom{ width: 100%; margin-left: 0; gap: 6px; }
+    .hud__btn{ width: 36px; height: 36px; border-radius: 8px; font-size: 17px; }
+    .hud__range{ height: 36px; }
+    .hud__range::-webkit-slider-thumb{ width: 20px; height: 20px; margin-top: -8px; }
+    .hud__range::-moz-range-thumb{ width: 18px; height: 18px; }
+    .hud__zoom-key{ display: none; }
+    .hud__zoom-value{ font-size: 12px; }
+    .placeholder{ padding: 24px; }
+  }
+  @media (max-width: 420px){
+    .action__label{ display: none; }
+    .action{ width: 32px; padding: 0; justify-content: center; }
+    .stage__name{ max-width: 48vw; }
+    .hud__value{ font-size: 10.5px; }
+    .hud__zoom-value{ min-width: 36px; font-size: 11.5px; }
+  }
+  @media (max-height: 620px) and (orientation: landscape) and (min-width: 761px){
+    .sidebar__foot{ display: none; }
+    .sidebar__head{ padding: 10px 16px 8px; }
+    .tabs{ padding: 6px 8px; gap: 2px; }
+    .tab{ min-height: 46px; }
+    .stage__bar{ height: 40px; }
+    .stage__hud{ min-height: 38px; padding-top: 4px; padding-bottom: 4px; }
   }
 </style>
 </head>
@@ -335,18 +580,18 @@
         <span class="stage__src" id="current-src"></span>
       </div>
       <div class="stage__actions">
-        <button class="action" id="refresh-frame" type="button" aria-disabled="true" title="重新载入当前页面">
+        <button class="action" id="refresh-frame" type="button" aria-disabled="true" title="重新载入当前页面" aria-label="重新载入当前页面">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
-          重载
+          <span class="action__label">重载</span>
         </button>
-        <a class="action" id="open-raw" href="#" target="_blank" rel="noopener" aria-disabled="true">
+        <a class="action" id="open-raw" href="#" target="_blank" rel="noopener" aria-disabled="true" title="在新标签页打开" aria-label="在新标签页打开">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M21 3 10 14"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
-          新标签页
+          <span class="action__label">新标签页</span>
         </a>
       </div>
     </div>
 
-    <div class="stage__frame">
+    <div class="stage__frame" id="frame-viewport">
       <div class="placeholder" id="placeholder">
         <div class="placeholder__inner">
           <h2 id="placeholder-title">选择一个页面</h2>
@@ -359,9 +604,42 @@
           <p id="stage-error-text"></p>
         </div>
       </div>
-      <iframe id="frame" title="页面预览" hidden></iframe>
+      <div class="frame-canvas">
+        <div class="frame-scaler" id="frame-scaler">
+          <iframe id="frame" title="页面预览" hidden></iframe>
+        </div>
+      </div>
       <div class="frame-mask" id="frame-mask"><div><div class="spinner"></div>载入中…</div></div>
     </div>
+
+    <section class="stage__hud" aria-label="预览状态与缩放控制">
+      <div class="hud__status">
+        <div class="hud__metric" title="iframe 可见区域换算为设备像素：CSS 视口 × 缩放 × DPR">
+          <span class="hud__key">真实分辨率</span>
+          <span class="hud__value" id="metric-device">—</span>
+        </div>
+        <div class="hud__metric" title="iframe 内容当前的布局视口（CSS 像素），受缩放影响">
+          <span class="hud__key">CSS 视口</span>
+          <span class="hud__value" id="metric-css">—</span>
+        </div>
+        <div class="hud__metric" title="iframe 所在窗口的设备像素比">
+          <span class="hud__key">DPR</span>
+          <span class="hud__value" id="metric-dpr">—</span>
+        </div>
+      </div>
+      <div class="hud__zoom">
+        <button class="hud__btn" id="zoom-out" type="button" title="缩小 10%" aria-label="缩小 iframe">−</button>
+        <input class="hud__range" id="zoom-range" type="range" min="25" max="200" step="5" value="100" aria-label="iframe 缩放倍率">
+        <button class="hud__btn" id="zoom-in" type="button" title="放大 10%" aria-label="放大 iframe">+</button>
+        <span class="hud__zoom-readout">
+          <span class="hud__zoom-key">缩放</span>
+          <output class="hud__zoom-value" id="zoom-value" for="zoom-range">100%</output>
+        </span>
+        <button class="hud__btn" id="zoom-reset" type="button" title="重置为 100%" aria-label="重置缩放">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>
+        </button>
+      </div>
+    </section>
   </main>
 
 <script>
@@ -382,14 +660,162 @@
     indicator: document.getElementById('indicator'),
     refreshFrame: document.getElementById('refresh-frame'),
     openRaw: document.getElementById('open-raw'),
+    frameViewport: document.getElementById('frame-viewport'),
+    frameScaler: document.getElementById('frame-scaler'),
+    metricDevice: document.getElementById('metric-device'),
+    metricCss: document.getElementById('metric-css'),
+    metricDpr: document.getElementById('metric-dpr'),
+    zoomRange: document.getElementById('zoom-range'),
+    zoomValue: document.getElementById('zoom-value'),
+    zoomOut: document.getElementById('zoom-out'),
+    zoomIn: document.getElementById('zoom-in'),
+    zoomReset: document.getElementById('zoom-reset'),
   };
+
+  const ZOOM_MIN = 25;
+  const ZOOM_MAX = 200;
+  const ZOOM_STEP = 10;
+  const ZOOM_STORAGE_KEY = 'html-single-page-viewer:zoom';
+  const DEFAULT_TITLE = '单页预览';
+  const DEFAULT_TITLE_SEPARATOR = ' · ';
 
   let entries = [];
   let activeIndex = null;
+  let zoom = readStoredZoom();
+  let titleConfig = normalizeTitleConfig();
 
   function setBarState(state) {
     els.indicator.className = 'stage__indicator' +
       (state === 'ok' ? ' is-ok' : state === 'error' ? ' is-error' : '');
+  }
+
+  function normalizeTitleConfig(raw) {
+    if (typeof raw === 'string') {
+      const value = raw.trim();
+      return { mode: 'fixed', value: value || DEFAULT_TITLE, separator: DEFAULT_TITLE_SEPARATOR };
+    }
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+      const value = typeof raw.value === 'string' ? raw.value.trim() : '';
+      if (value) {
+        return {
+          mode: raw.mode === 'prefix' ? 'prefix' : 'fixed',
+          value,
+          separator: typeof raw.separator === 'string' ? raw.separator : DEFAULT_TITLE_SEPARATOR,
+        };
+      }
+    }
+    return { mode: 'fixed', value: DEFAULT_TITLE, separator: DEFAULT_TITLE_SEPARATOR };
+  }
+
+  function applyDocumentTitle(itemTitle = '') {
+    const current = typeof itemTitle === 'string' ? itemTitle.trim() : '';
+    if (titleConfig.mode === 'prefix' && current) {
+      document.title = `${titleConfig.value}${titleConfig.separator}${current}`;
+      return;
+    }
+    document.title = titleConfig.value;
+  }
+
+  function clampZoom(value) {
+    return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
+  }
+
+  function readStoredZoom() {
+    try {
+      const stored = Number(localStorage.getItem(ZOOM_STORAGE_KEY));
+      if (Number.isFinite(stored) && stored >= ZOOM_MIN && stored <= ZOOM_MAX) return stored;
+    } catch {}
+    return 100;
+  }
+
+  function zoomPercent() {
+    return Math.round(zoom);
+  }
+
+  function updateZoomReadout() {
+    const percent = zoomPercent();
+    els.zoomRange.value = String(percent);
+    els.zoomValue.textContent = `${percent}%`;
+    const fill = ((percent - ZOOM_MIN) / (ZOOM_MAX - ZOOM_MIN)) * 100;
+    els.zoomRange.style.setProperty('--fill', `${fill}%`);
+    els.zoomOut.disabled = zoom <= ZOOM_MIN;
+    els.zoomIn.disabled = zoom >= ZOOM_MAX;
+  }
+
+  function updateFrameMetrics() {
+    const entry = activeIndex === null ? null : entries[activeIndex];
+    if (!entry?.src || els.frame.hidden) {
+      els.metricDevice.textContent = '—';
+      els.metricCss.textContent = '—';
+      els.metricDpr.textContent = '—';
+      return;
+    }
+
+    let cssWidth = 0;
+    let cssHeight = 0;
+    let dpr = window.devicePixelRatio || 1;
+    try {
+      const view = els.frame.contentWindow;
+      if (view) {
+        cssWidth = view.innerWidth;
+        cssHeight = view.innerHeight;
+        dpr = view.devicePixelRatio || dpr;
+      }
+    } catch {}
+    if (!cssWidth || !cssHeight) {
+      cssWidth = els.frame.clientWidth;
+      cssHeight = els.frame.clientHeight;
+    }
+
+    const rect = els.frame.getBoundingClientRect();
+    if (!cssWidth || !cssHeight || !rect.width || !rect.height) {
+      els.metricDevice.textContent = '—';
+      els.metricCss.textContent = '—';
+      els.metricDpr.textContent = '—';
+      return;
+    }
+
+    els.metricDevice.textContent =
+      `${Math.round(rect.width * dpr)} × ${Math.round(rect.height * dpr)}`;
+    els.metricCss.textContent = `${cssWidth} × ${cssHeight}`;
+    els.metricDpr.textContent = String(parseFloat(dpr.toFixed(2)));
+  }
+
+  function layoutFrame() {
+    const rect = els.frameViewport.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const scale = zoom / 100;
+    els.frameScaler.style.width = `${rect.width / scale}px`;
+    els.frameScaler.style.height = `${rect.height / scale}px`;
+    els.frameScaler.style.transform = `scale(${scale})`;
+    updateFrameMetrics();
+  }
+
+  let layoutScheduled = false;
+  function scheduleLayout() {
+    if (layoutScheduled) return;
+    layoutScheduled = true;
+    requestAnimationFrame(() => {
+      layoutScheduled = false;
+      layoutFrame();
+    });
+  }
+
+  function persistZoom() {
+    try { localStorage.setItem(ZOOM_STORAGE_KEY, String(zoomPercent())); } catch {}
+  }
+
+  function setZoom(next, { persist = false } = {}) {
+    const clamped = clampZoom(next);
+    if (clamped === zoom) {
+      updateZoomReadout();
+      if (persist) persistZoom();
+      return;
+    }
+    zoom = clamped;
+    updateZoomReadout();
+    layoutFrame();
+    if (persist) persistZoom();
   }
 
   function showPlaceholder(title, text) {
@@ -400,6 +826,7 @@
     els.stageError.classList.remove('is-visible');
     els.mask.classList.remove('is-visible');
     setBarState(null);
+    updateFrameMetrics();
   }
 
   function showStageError(message) {
@@ -409,6 +836,7 @@
     els.frame.hidden = true;
     els.mask.classList.remove('is-visible');
     setBarState('error');
+    updateFrameMetrics();
   }
 
   function updateHash() {
@@ -422,6 +850,7 @@
     const entry = entries[index];
     if (!entry) return;
     activeIndex = index;
+    applyDocumentTitle(entry.title || entry.displayPath);
 
     for (const tab of els.tabs.children) {
       const isActive = Number(tab.dataset.index) === index;
@@ -453,6 +882,7 @@
     els.frame.hidden = false;
     els.mask.classList.add('is-visible');
     els.frame.src = entry.src;
+    scheduleLayout();
   }
 
   function renderTabs() {
@@ -512,9 +942,10 @@
     if (!response.ok) throw new Error(`config.json HTTP ${response.status}`);
     const data = await response.json();
     const items = Array.isArray(data) ? data : data?.entries;
+    const rawTitle = Array.isArray(data) ? undefined : data?.title;
     if (!Array.isArray(items)) throw new Error('config.json 顶层应为数组，或包含 entries 数组');
 
-    return Promise.all(items.map(async (item, index) => {
+    const built = await Promise.all(items.map(async (item, index) => {
       const spec = typeof item === 'string' ? { path: item } : (item || {});
       const displayPath = typeof spec.path === 'string' ? spec.path : '';
       const base = {
@@ -548,13 +979,17 @@
         return { ...base, title: base.title || baseName(displayPath), error: '文件不存在或无法访问' };
       }
     }));
+
+    return { entries: built, titleConfig: normalizeTitleConfig(rawTitle) };
   }
 
   async function load({ keepSelection = false } = {}) {
     const previousPath = keepSelection && activeIndex !== null ? entries[activeIndex]?.displayPath : null;
     els.reload.classList.add('spinning');
     try {
-      entries = await buildEntries();
+      const parsed = await buildEntries();
+      entries = parsed.entries;
+      titleConfig = parsed.titleConfig;
       renderTabs();
       const usable = entries.filter((entry) => entry.src).length;
       els.count.textContent = entries.length
@@ -570,8 +1005,11 @@
       }
       activeIndex = null;
       applyHashOnLoad();
+      if (activeIndex === null) applyDocumentTitle();
     } catch (error) {
       entries = [];
+      titleConfig = normalizeTitleConfig();
+      applyDocumentTitle();
       els.tabs.replaceChildren();
       els.count.textContent = '读取失败';
       const item = document.createElement('div');
@@ -600,7 +1038,32 @@
   els.frame.addEventListener('load', () => {
     els.mask.classList.remove('is-visible');
     if (!els.frame.hidden) setBarState('ok');
+    scheduleLayout();
+    try {
+      els.frame.contentWindow?.addEventListener('resize', updateFrameMetrics);
+    } catch {}
   });
+
+  let persistTimer = null;
+  els.zoomRange.addEventListener('input', () => {
+    setZoom(Number(els.zoomRange.value));
+    clearTimeout(persistTimer);
+    persistTimer = setTimeout(persistZoom, 200);
+  });
+  els.zoomRange.addEventListener('change', () => {
+    clearTimeout(persistTimer);
+    setZoom(Number(els.zoomRange.value), { persist: true });
+  });
+  els.zoomOut.addEventListener('click', () => setZoom(zoom - ZOOM_STEP, { persist: true }));
+  els.zoomIn.addEventListener('click', () => setZoom(zoom + ZOOM_STEP, { persist: true }));
+  els.zoomReset.addEventListener('click', () => setZoom(100, { persist: true }));
+
+  if ('ResizeObserver' in window) {
+    new ResizeObserver(scheduleLayout).observe(els.frameViewport);
+  } else {
+    window.addEventListener('resize', scheduleLayout);
+  }
+  window.addEventListener('orientationchange', scheduleLayout);
 
   window.addEventListener('hashchange', () => {
     const match = window.location.hash.match(/^#\/entry\/(\d+)$/);
@@ -620,6 +1083,9 @@
     if (next >= 0 && next < entries.length) selectEntry(next);
   });
 
+  updateZoomReadout();
+  layoutFrame();
+  applyDocumentTitle();
   load();
 })();
 </script>
