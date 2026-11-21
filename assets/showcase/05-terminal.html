@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>guest@retro:~</title>
+<style>
+  :root{
+    --bg: #04090A;
+    --green: #76F0A2;
+    --dim: #3E6B52;
+    --amber: #F0C674;
+    --bar: #0A1417;
+    --line: #12241C;
+  }
+  body.amber{
+    --green: #F0C674;
+    --dim: #6B5A3E;
+    --amber: #76F0A2;
+  }
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  html, body{ height: 100%; }
+  body{
+    background: var(--bg);
+    color: var(--green);
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, "Liberation Mono", monospace;
+    display: grid;
+    place-items: center;
+    padding: min(3vw, 28px);
+    transition: color .2s;
+  }
+  .term{
+    position: relative;
+    width: min(100%, 1000px);
+    height: min(100%, 760px);
+    display: flex;
+    flex-direction: column;
+    background: radial-gradient(900px 420px at 50% 0%, #071410, var(--bg));
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.6);
+  }
+  .term::after{
+    content: "";
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 3px);
+  }
+  .bar{
+    display: flex; align-items: center; gap: 7px;
+    padding: 9px 12px;
+    background: var(--bar);
+    border-bottom: 1px solid var(--line);
+    font-size: 11px;
+    color: var(--dim);
+    flex: none;
+  }
+  .dot{ width: 9px; height: 9px; border-radius: 50%; }
+  .dot.red{ background: #D96B6B; }
+  .dot.yellow{ background: #D9B86B; }
+  .dot.green{ background: #6BD98B; }
+  .bar__title{ margin: 0 auto; transform: translateX(-18px); font-size: 10.5px; letter-spacing: .06em; }
+  .screen{
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 20px 22px 28px;
+    font-size: 13px;
+    line-height: 1.75;
+    scrollbar-width: thin;
+    scrollbar-color: #1C3B2C transparent;
+    cursor: text;
+  }
+  .banner{ margin-bottom: 16px; font-size: 12px; line-height: 1.6; color: #9BE8B8; white-space: pre-wrap; }
+  body.amber .banner{ color: #F5D79B; }
+  .dim{ color: var(--dim); }
+  .accent{ color: var(--amber); }
+  .line{ white-space: pre-wrap; word-break: break-word; }
+  .input-line{ display: flex; align-items: center; margin-top: 2px; }
+  .ps1{ color: var(--amber); margin-right: 8px; white-space: nowrap; }
+  .input-line input{
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: 0;
+    color: var(--green);
+    font: inherit;
+    caret-color: var(--green);
+  }
+  .hint{
+    margin-top: 18px;
+    font-size: 11px;
+    color: var(--dim);
+  }
+  @media (max-width: 560px){
+    body{ padding: 0; }
+    .term{ width: 100%; height: 100vh; border: 0; border-radius: 0; }
+    .screen{ font-size: 12px; padding: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .term::after{ display: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="term" id="term">
+    <div class="bar">
+      <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+      <span class="bar__title">guest@retro: ~ — zsh</span>
+    </div>
+    <div class="screen" id="screen">
+      <pre class="banner" id="banner">RETRO-OS 0.9.4  [build 20261121]
+Copyright (c) 1998-2026 Nobody Systems
+
+输入 <span class="accent">help</span> 查看可用命令。<span class="dim">（这是一个纯前端演示，不会伤害任何真实终端。）</span></pre>
+      <div id="output"></div>
+      <form class="input-line" id="prompt" autocomplete="off">
+        <span class="ps1">guest@retro:~$</span>
+        <input id="cmd" type="text" spellcheck="false" autocomplete="off" aria-label="命令输入">
+      </form>
+    </div>
+  </div>
+
+<script>
+  const term = document.getElementById('term');
+  const screen = document.getElementById('screen');
+  const output = document.getElementById('output');
+  const banner = document.getElementById('banner');
+  const form = document.getElementById('prompt');
+  const input = document.getElementById('cmd');
+
+  const history = [];
+  let historyIndex = -1;
+
+  const files = {
+    'about.txt': '一个用于展示的假终端。\n没有后端，没有真实 shell，只有一点怀旧的绿色。',
+    'notes.md': '# 待办\n- 修好显示器上的第 3 个坏点\n- 给猫买粮\n- 学会用 vim 退出',
+    'coffee.log': '[09:12] 冲泡 #1 浓度 60%\n[11:40] 冲泡 #2 浓度 80%\n[15:03] 咖啡壶空了',
+  };
+
+  function scrollToBottom(){
+    screen.scrollTop = screen.scrollHeight;
+  }
+
+  function line(text, className = ''){
+    const div = document.createElement('div');
+    div.className = 'line' + (className ? ' ' + className : '');
+    div.textContent = text;
+    output.append(div);
+  }
+
+  function promptLine(raw){
+    const div = document.createElement('div');
+    div.className = 'line';
+    const p = document.createElement('span');
+    p.className = 'ps1';
+    p.textContent = 'guest@retro:~$';
+    div.append(p, document.createTextNode(' ' + raw));
+    output.append(div);
+  }
+
+  const commands = {
+    help(){
+      line('可用命令：');
+      line('  help          显示这份帮助');
+      line('  about         关于这个终端');
+      line('  ls            列出文件');
+      line('  cat <文件>    查看文件内容');
+      line('  date          显示当前时间');
+      line('  whoami        当前用户');
+      line('  theme         切换琥珀色主题');
+      line('  sudo          试试看');
+      line('  echo <文本>   原样输出');
+      line('  clear         清屏');
+    },
+    about(){
+      line('RETRO-OS 0.9.4 —— 一个运行在 iframe 里的模拟终端。');
+      line('它不会读取你的文件，也不会执行真实命令，请放心输入。');
+    },
+    ls(){
+      line('about.txt  notes.md  coffee.log  projects/');
+    },
+    cat(args){
+      if (!args.length) { line('用法：cat <文件>'); return; }
+      const name = args[0];
+      if (files[name]) line(files[name]);
+      else line(`cat: ${name}: 没有这个文件`);
+    },
+    date(){
+      line(new Date().toLocaleString('zh-CN', { hour12: false }));
+    },
+    whoami(){
+      line('guest（权限：几乎没有）');
+    },
+    theme(){
+      document.body.classList.toggle('amber');
+      line(document.body.classList.contains('amber') ? '已切换到琥珀色模式。' : '已恢复正常绿色模式。');
+    },
+    sudo(){
+      line('guest 不在 sudoers 文件中。此事件将被记录。');
+      line('（但这里没有日志，也没有人会看到。）', 'dim');
+    },
+    echo(args){
+      line(args.join(' '));
+    },
+    clear(){
+      output.replaceChildren();
+      banner.style.display = 'none';
+    },
+  };
+
+  function run(raw){
+    const value = raw.trim();
+    promptLine(raw);
+    if (!value) { scrollToBottom(); return; }
+
+    history.push(value);
+    historyIndex = history.length;
+
+    const [name, ...args] = value.split(/\s+/);
+    const command = commands[name];
+    if (!command) {
+      line(`${name}: 未找到命令。输入 help 查看可用命令。`);
+    } else {
+      command(args);
+    }
+    scrollToBottom();
+  }
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const raw = input.value;
+    input.value = '';
+    run(raw);
+  });
+
+  input.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      if (!history.length) return;
+      historyIndex = Math.max(0, historyIndex - 1);
+      input.value = history[historyIndex] || '';
+      input.setSelectionRange(input.value.length, input.value.length);
+    } else if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      if (!history.length) return;
+      historyIndex = Math.min(history.length, historyIndex + 1);
+      input.value = historyIndex === history.length ? '' : history[historyIndex];
+    }
+  });
+
+  term.addEventListener('click', (event) => {
+    if (event.target.closest('a, button, input')) return;
+    input.focus();
+  });
+
+  input.focus();
+  scrollToBottom();
+</script>
+</body>
+</html>

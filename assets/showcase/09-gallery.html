@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>不存在的风景 · 生成式画廊</title>
+<style>
+  :root{
+    --bg: #0D0D0F;
+    --panel: #141416;
+    --line: #26262B;
+    --text: #EDEAE3;
+    --muted: #8C8A85;
+    --faint: #61605C;
+    --accent: #E2B96F;
+    --serif: "Noto Serif CJK SC", "Songti SC", Georgia, serif;
+  }
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  html{ scroll-behavior: smooth; }
+  body{
+    background:
+      radial-gradient(900px 500px at 12% -8%, #1A1713 0%, rgba(13,13,15,0) 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    padding: 30px clamp(18px, 4vw, 56px) 48px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .top{
+    display: flex; align-items: baseline; justify-content: space-between; gap: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+    font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--faint);
+  }
+  .top b{ color: var(--accent); font-weight: 600; letter-spacing: .22em; }
+  .intro{ padding: clamp(34px, 6vw, 64px) 0 clamp(26px, 4vw, 40px); max-width: 760px; }
+  .intro .kicker{ font-size: 11px; letter-spacing: .24em; color: var(--accent); text-transform: uppercase; }
+  .intro h1{
+    margin: 16px 0 12px;
+    font-family: var(--serif);
+    font-size: clamp(30px, 5vw, 48px);
+    font-weight: 500;
+    letter-spacing: .04em;
+    line-height: 1.28;
+  }
+  .intro p{ color: var(--muted); font-size: 13.5px; line-height: 1.85; max-width: 560px; }
+  .intro .count{ margin-top: 14px; font-size: 11px; color: var(--faint); letter-spacing: .12em; }
+
+  .grid{
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0,1fr));
+    gap: clamp(12px, 1.6vw, 22px);
+  }
+  .card{
+    margin: 0;
+    cursor: zoom-in;
+    outline: none;
+    border-radius: 12px;
+  }
+  .card:focus-visible{ box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent); }
+  .art{
+    position: relative;
+    aspect-ratio: 4 / 5;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    transition: transform .35s cubic-bezier(.2,.7,.3,1), border-color .35s;
+    isolation: isolate;
+  }
+  .card:hover .art{ transform: translateY(-4px) scale(1.008); border-color: #45433D; }
+  .art::after{
+    content: "";
+    position: absolute; inset: 0;
+    background-image: repeating-linear-gradient(0deg, rgba(255,255,255,.05) 0 1px, transparent 1px 3px);
+    mix-blend-mode: overlay;
+    opacity: .45;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* 九幅画，全部由 CSS 渐变成 */
+  .a1{ background:
+    radial-gradient(120% 58% at 50% 104%, #F6C6BE 0%, rgba(246,198,190,0) 62%),
+    radial-gradient(90% 40% at 50% 15%, rgba(255,255,255,.55), rgba(255,255,255,0) 70%),
+    linear-gradient(180deg, #E9F1F7 0%, #C8DCE9 44%, #94B7C8 57%, #F0D6CC 100%);
+  }
+  .a1::before{
+    content: ""; position: absolute; left: 0; right: 0; top: 56%; height: 1px;
+    background: rgba(255,255,255,.85); filter: blur(.4px);
+  }
+  .a2{ background:
+    radial-gradient(75% 55% at 18% 12%, rgba(112,255,210,.82), rgba(112,255,210,0) 62%),
+    radial-gradient(65% 75% at 86% 28%, rgba(158,118,255,.8), rgba(158,118,255,0) 66%),
+    radial-gradient(105% 70% at 50% 108%, #06191D 0%, #020507 72%);
+  }
+  .a2::before{
+    content: ""; position: absolute; left: -20%; right: -20%; top: 34%; height: 12%;
+    background: linear-gradient(90deg, transparent, rgba(180,255,226,.55), transparent);
+    filter: blur(12px);
+    transform: rotate(-9deg);
+  }
+  .a3{ background:
+    radial-gradient(circle at 28% 26%, #FFC06B 0 7%, rgba(255,192,107,0) 8%),
+    radial-gradient(circle at 66% 62%, #AE4527 0 12%, rgba(174,69,39,0) 13%),
+    radial-gradient(circle at 38% 82%, #74291A 0 16%, rgba(116,41,26,0) 17%),
+    radial-gradient(circle at 82% 22%, #D98A4A 0 5%, rgba(217,138,74,0) 6%),
+    linear-gradient(145deg, #743521, #C0663B 46%, #4E2416);
+    filter: saturate(.95);
+  }
+  .a4{ background:
+    repeating-linear-gradient(178deg, #0E3B3C 0 12px, #17595A 12px 19px, #D8C6A0 19px 23px, #2A7673 23px 37px, #0B2E30 37px 44px);
+  }
+  .a4::before{
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(70% 55% at 30% 20%, rgba(255,255,255,.18), transparent 70%);
+  }
+  .a5{ background-color: #06101F; background-image:
+    radial-gradient(1.2px 1.2px at 20% 30%, #fff, transparent 1.8px),
+    radial-gradient(1px 1px at 70% 20%, #fff, transparent 1.5px),
+    radial-gradient(1.4px 1.4px at 45% 65%, #fff, transparent 2px),
+    radial-gradient(1px 1px at 85% 75%, #fff, transparent 1.5px),
+    linear-gradient(180deg, #02040A, #0A1A33 55%, #03060C);
+    background-size: 130px 130px, 90px 90px, 170px 170px, 110px 110px, auto;
+  }
+  .a6{ background:
+    radial-gradient(55% 45% at 28% 22%, rgba(255,255,255,.72), rgba(255,255,255,0) 70%),
+    radial-gradient(62% 52% at 76% 58%, rgba(112,220,122,.72), rgba(112,220,122,0) 72%),
+    radial-gradient(85% 72% at 38% 96%, rgba(8,74,46,.9), rgba(8,74,46,0) 72%),
+    linear-gradient(160deg, #DCF2D7, #8DC999 48%, #2B6A4E);
+  }
+  .a7{ background:
+    linear-gradient(112deg, transparent 0 37%, #E7C48A 37% 38%, #2A2018 38% 57%, #9B4A32 57% 58%, transparent 58%),
+    linear-gradient(160deg, #3B2D23, #100C09);
+  }
+  .a7::before{
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(80% 50% at 80% 15%, rgba(255,224,170,.18), transparent 70%);
+  }
+  .a8{ background:
+    radial-gradient(circle at 50% 86%, #FFE29A 0%, #FF8A3C 11%, #C62F1B 27%, rgba(198,47,27,0) 62%),
+    radial-gradient(circle at 28% 38%, rgba(255,120,50,.32), rgba(255,120,50,0) 55%),
+    linear-gradient(180deg, #0B0705, #1C0C07 70%, #050302);
+  }
+  .a9{ background:
+    conic-gradient(from 210deg at 50% 50%, #FF5FA2, #6C5CE7, #22D3EE, #7CFFB2, #FF5FA2);
+    filter: saturate(1.05);
+  }
+  .a9::before{
+    content: ""; position: absolute; inset: 20%;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,.55);
+    box-shadow: 0 0 40px rgba(255,255,255,.25) inset;
+  }
+
+  figcaption{
+    display: grid;
+    grid-template-columns: 28px minmax(0,1fr);
+    column-gap: 10px;
+    padding: 11px 4px 0;
+    align-items: baseline;
+  }
+  figcaption .no{
+    font: 10.5px ui-monospace, "SF Mono", Consolas, monospace;
+    color: var(--faint);
+  }
+  figcaption b{ font-size: 13px; font-weight: 500; letter-spacing: .04em; }
+  figcaption em{
+    grid-column: 2;
+    font-style: normal;
+    font-size: 10.5px;
+    color: var(--faint);
+    letter-spacing: .05em;
+    margin-top: 2px;
+  }
+  .card:hover figcaption b{ color: var(--accent); }
+
+  .foot{
+    display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+    margin-top: 46px; padding-top: 16px;
+    border-top: 1px solid var(--line);
+    font-size: 10.5px; color: var(--faint); letter-spacing: .08em;
+  }
+
+  dialog{
+    width: min(940px, 92vw);
+    padding: 0;
+    border: 1px solid #34343A;
+    border-radius: 14px;
+    background: #101012;
+    color: var(--text);
+    overflow: hidden;
+  }
+  dialog::backdrop{
+    background: rgba(4,4,6,.78);
+    backdrop-filter: blur(6px);
+  }
+  .viewer__art .art{
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border: 0;
+    border-radius: 0;
+  }
+  .viewer__meta{
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
+    padding: 18px 20px 20px;
+    border-top: 1px solid var(--line);
+  }
+  .viewer__meta h2{
+    font-family: var(--serif);
+    font-size: 20px; font-weight: 500; letter-spacing: .05em;
+  }
+  .viewer__meta p{ margin-top: 6px; font-size: 12px; color: var(--muted); line-height: 1.7; }
+  .viewer__close{
+    flex: none;
+    padding: 7px 14px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .viewer__close:hover{ color: var(--text); border-color: #4A4A50; }
+
+  @media (max-width: 900px){
+    .grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+  }
+  @media (max-width: 560px){
+    .grid{ grid-template-columns: 1fr; }
+    .intro h1{ font-size: 30px; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .art, .card:hover .art{ transition: none; transform: none; }
+  }
+</style>
+</head>
+<body>
+  <header class="top">
+    <span><b>FIELD</b> / 生成式练习</span>
+    <span>Issue 03 — 2026</span>
+  </header>
+
+  <section class="intro">
+    <div class="kicker">CSS Gradients Only</div>
+    <h1>不存在的风景</h1>
+    <p>九幅由 CSS 渐变构成的抽象画：没有图片文件，没有外部素材。点击任意一幅，可以放大了看。</p>
+    <div class="count">09 WORKS · 全部为浏览器实时绘制</div>
+  </section>
+
+  <section class="grid" id="grid" aria-label="作品列表">
+    <figure class="card" tabindex="0" role="button" data-title="盐湖" data-note="蒸发到最后一层矿物，颜色被留在岸边。">
+      <div class="art a1"></div>
+      <figcaption><span class="no">01</span><b>盐湖</b><em>CSS gradient · 2026</em></figcaption>
+    </figure>
+    <figure class="card" tabindex="0" role="button" data-title="极光" data-note="高纬度夜空里的带电粒子，缓慢下沉。">
+      <div class="art a2"></div>
+      <figcaption><span class="no">02</span><b>极光</b><em>CSS gradient · 2026</em></figcaption>
+    </figure>
+    <figure class="card" tabindex="0" role="button" data-title="铁锈" data-note="时间对金属做的一次缓慢氧化。">
+      <div class="art a3"></div>
+      <figcaption><span class="no">03</span><b>铁锈</b><em>CSS gradient · 2026</em></figcaption>
+    </figure>
+    <figure class="card" tabindex="0" role="button" data-title="潮间带" data-note="退潮时露出的一条条沉积线。">
+      <div class="art a4"></div>
+      <figcaption><span class="no">04</span><b>潮间带</b><em>CSS gradient · 2026</em></figcaption>
+    </figure>
+    <figure class="card" tabindex="0" role="button" data-title="夜航" data-note="在没有灯的海面上，靠星星辨认方向。">
+      <div class="art a5"></div>
+      <figcaption><span class="no">05</span><b>夜航</b><em>CSS gradient · 2026</em></figcaption>
+    </figure>
+    <figure class="card" tabindex="0" role="button" data-title="温室" data-note="玻璃、水汽和过度饱和的绿。">
+      <div class="art a6"></div>
+      <figcaption><span class="no">06</span><b>温室</b><em>CSS gradient · 2026</em></figcaption>
+    </figure>
+    <figure class="card" tabindex="0" role="button" data-title="断层" data-note="地壳把一次争吵记录成了斜线。">
+      <div class="art a7"></div>
+      <figcaption><span class="no">07</span><b>断层</b><em>CSS gradient · 2026</em></figcaption>
+    </figure>
+    <figure class="card" tabindex="0" role="button" data-title="余烬" data-note="火熄灭之后，颜色还在继续发热。">
+      <div class="art a8"></div>
+      <figcaption><span class="no">08</span><b>余烬</b><em>CSS gradient · 2026</em></figcaption>
+    </figure>
+    <figure class="card" tabindex="0" role="button" data-title="静电场" data-note="看不见的力，让尘埃排成短暂的图案。">
+      <div class="art a9"></div>
+      <figcaption><span class="no">09</span><b>静电场</b><em>CSS gradient · 2026</em></figcaption>
+    </figure>
+  </section>
+
+  <footer class="foot">
+    <span>FIELD / 生成式练习 · 自制示例</span>
+    <span>点击放大 · Esc 关闭</span>
+  </footer>
+
+  <dialog id="viewer" aria-label="作品详情">
+    <div class="viewer__art" id="viewer-art"></div>
+    <div class="viewer__meta">
+      <div>
+        <h2 id="viewer-title"></h2>
+        <p id="viewer-note"></p>
+      </div>
+      <button class="viewer__close" id="viewer-close" type="button">关闭</button>
+    </div>
+  </dialog>
+
+<script>
+  const dialog = document.getElementById('viewer');
+  const viewerArt = document.getElementById('viewer-art');
+  const viewerTitle = document.getElementById('viewer-title');
+  const viewerNote = document.getElementById('viewer-note');
+
+  function openCard(card){
+    const art = card.querySelector('.art').cloneNode(false);
+    viewerArt.replaceChildren(art);
+    viewerTitle.textContent = card.dataset.title || '';
+    viewerNote.textContent = card.dataset.note || '';
+    dialog.showModal();
+  }
+
+  document.querySelectorAll('.card').forEach((card) => {
+    card.addEventListener('click', () => openCard(card));
+    card.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openCard(card);
+      }
+    });
+  });
+
+  document.getElementById('viewer-close').addEventListener('click', () => dialog.close());
+
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+</script>
+</body>
+</html>

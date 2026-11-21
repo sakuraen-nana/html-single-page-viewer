@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>河岸笔记 · 潮汐与石</title>
+<style>
+  :root{
+    --paper: #FAF6EC;
+    --ink: #242019;
+    --muted: #7B7366;
+    --accent: #8A5A32;
+    --rule: #D9D1C0;
+    --serif: "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", "SimSun", Georgia, serif;
+  }
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  html{ scroll-behavior: smooth; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    line-height: 1.95;
+    font-size: 16.5px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page{
+    max-width: 736px;
+    margin: 0 auto;
+    padding: 48px 28px 72px;
+  }
+  .kicker{
+    display: flex; align-items: center; gap: 14px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  .kicker::after{ content: ""; flex: 1; height: 1px; background: var(--rule); }
+  h1{
+    margin-top: 26px;
+    font-size: clamp(32px, 5vw, 52px);
+    line-height: 1.25;
+    letter-spacing: .02em;
+    font-weight: 700;
+  }
+  .standfirst{
+    margin-top: 16px;
+    max-width: 34em;
+    font-size: 17px;
+    line-height: 1.85;
+    color: #5A5348;
+  }
+  .byline{
+    margin-top: 26px; padding: 12px 0;
+    display: flex; flex-wrap: wrap; gap: 8px 22px;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 11.5px; color: var(--muted); letter-spacing: .04em;
+  }
+  .byline b{ color: var(--ink); font-weight: 500; }
+  article{ margin-top: 34px; }
+  article p{ margin: 0 0 1.25em; text-align: justify; }
+  article h2{
+    margin: 2.1em 0 .7em;
+    font-size: 22px; font-weight: 700; letter-spacing: .04em;
+  }
+  article h2::before{
+    content: "§";
+    margin-right: 8px;
+    color: var(--accent);
+    font-weight: 400;
+  }
+  article > p:first-of-type::first-letter{
+    float: left;
+    margin: 9px 10px 0 0;
+    font-size: 62px;
+    line-height: .78;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .pull{
+    margin: 2.2em 0;
+    padding: 4px 0 4px 26px;
+    border-left: 3px solid var(--accent);
+    font-size: 22px;
+    line-height: 1.7;
+    color: var(--accent);
+  }
+  .pull small{
+    display: block; margin-top: 8px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--muted);
+  }
+  figure{ margin: 2.2em 0; }
+  figure svg{
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--rule);
+    background: #F2EBDC;
+  }
+  figcaption{
+    margin-top: 9px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 11px; color: var(--muted); letter-spacing: .02em;
+  }
+  sup a{
+    color: var(--accent);
+    text-decoration: none;
+    font-size: .7em;
+    padding-left: 1px;
+  }
+  .footnotes{
+    margin-top: 56px; padding-top: 18px;
+    border-top: 1px solid var(--rule);
+    font-size: 12.5px; line-height: 1.8; color: var(--muted);
+  }
+  .footnotes li{ margin: 0 0 .5em 1.4em; }
+  .colophon{
+    margin-top: 46px;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--muted);
+    display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  }
+</style>
+</head>
+<body>
+  <main class="page">
+    <div class="kicker">Field Notes / 03</div>
+    <h1>潮汐与石</h1>
+    <p class="standfirst">在退潮后的河口，我学会辨认时间留下的笔迹：有些属于水，有些属于石头，还有一些只属于等待。</p>
+    <div class="byline">
+      <span><b>文 / 摄影</b> 自制示例</span>
+      <span><b>地点</b> 东偏南某河口</span>
+      <span><b>日期</b> 2026 年 11 月</span>
+      <span><b>阅读</b> 约 6 分钟</span>
+    </div>
+
+    <article>
+      <p>退潮是在凌晨四点开始的。那时天还没有亮，河口只剩一条发灰的线，像有人把海从陆地上慢慢抽走。我踩着湿滑的泥往里走，鞋底陷下去，又被水托起来。四周安静得能听见远处航标灯换气的电流声。</p>
+      <p>老陈已经在滩上。他蹲在一块半人高的礁石旁，用一把生了锈的小刀刮取石缝里的贝壳。他做这件事已经三十多年，却从不自称渔民。“我只是来收潮水留下的东西。”他说。语气平淡，像在解释天气。</p>
+      <p>我跟着他走了两公里。潮水退得很快，黑色的滩面不断变大，石头一块一块露出来，表面挂着水膜，在暗中反光。老陈偶尔停下，用脚背蹭一蹭石头，看一眼纹路，又继续走。他说，石头的年轮不在里面，在外面：哪一面被浪磨圆，哪一面长着藤壶，哪一面积着细沙，都比树轮更诚实。</p>
+
+      <blockquote class="pull">
+        石头不记得水，水却记得每一块石头。
+        <small>老陈，2026</small>
+      </blockquote>
+
+      <p>我想起小时候在课本里看到的潮汐表。数字精确到分钟，涨落像一台巨大的钟。但站在滩上，时间不是那样运作的。它更像一层一层刷上去的漆：昨天的水位压在今天的沙上，前天的又被更早的盖住。你只能从断面上读它，而断面永远不完整。</p>
+
+      <h2>潮痕</h2>
+      <p>天亮之后，我看见石头上有一圈细白的盐。老陈说那是“潮痕”，每一次涨潮都会在原来的位置上方留下一线。大的潮留下粗的，小的潮留下细的。赶上下雨，痕迹会被冲淡，但不会完全消失。“你仔细看，像树一样。”<sup><a href="#fn1">1</a></sup></p>
+      <p>我们沿着潮痕往回走。他把捡到的贝壳倒进一个编织袋，袋口用尼龙绳扎紧。袋子里发出细碎的碰撞声，像很多小石头在低声交谈。我问他收这些做什么。他说晒干、碾碎，掺进饲料，或者卖给做手工艺的人。都不值钱，但总比空着手回家好。</p>
+
+      <figure>
+        <svg viewBox="0 0 680 300" role="img" aria-label="手绘潮位草图：数条曲线与散布的石头">
+          <rect width="680" height="300" fill="#F2EBDC"/>
+          <g stroke="#C9BBA3" stroke-width="1">
+            <line x1="0" y1="60" x2="680" y2="60"/>
+            <line x1="0" y1="120" x2="680" y2="120"/>
+            <line x1="0" y1="180" x2="680" y2="180"/>
+            <line x1="0" y1="240" x2="680" y2="240"/>
+          </g>
+          <g fill="none" stroke="#8A5A32" stroke-width="1.6" opacity=".85">
+            <path d="M0 92 C 70 84, 110 118, 178 106 S 300 62, 364 84 S 470 130, 544 100 S 630 70, 680 82"/>
+            <path d="M0 132 C 90 120, 128 156, 212 146 S 330 110, 400 128 S 500 168, 580 140 S 650 116, 680 124" opacity=".65"/>
+            <path d="M0 172 C 60 166, 120 192, 200 184 S 320 152, 392 166 S 500 202, 570 180 S 646 160, 680 166" opacity=".45"/>
+          </g>
+          <g fill="#242019">
+            <ellipse cx="118" cy="208" rx="26" ry="13"/>
+            <ellipse cx="214" cy="226" rx="14" ry="8"/>
+            <ellipse cx="308" cy="198" rx="34" ry="17" fill="#3B342A"/>
+            <ellipse cx="424" cy="222" rx="19" ry="10"/>
+            <ellipse cx="512" cy="204" rx="28" ry="13" fill="#4A4134"/>
+            <ellipse cx="604" cy="228" rx="12" ry="7"/>
+          </g>
+          <g stroke="#F2EBDC" stroke-width="1.5" opacity=".55">
+            <path d="M292 198 q 16 -8 32 0"/>
+            <path d="M500 203 q 12 -6 24 0"/>
+            <path d="M104 207 q 14 -6 28 0"/>
+          </g>
+          <text x="20" y="30" fill="#7B7366" font-family="Helvetica, Arial, sans-serif" font-size="10" letter-spacing="2">TIDE MARKS — 01 / 03</text>
+        </svg>
+        <figcaption>手绘潮位草图。每一条线代表一次涨落，间隙是石头露出的时间。</figcaption>
+      </figure>
+
+      <h2>向下</h2>
+      <p>涨潮前，我们返回岸上。老陈走在前面，步子不快，却很稳。经过一块被水冲空的石台时，他停下来，让我把手伸进缝里。里面是凉的，有细沙，也有某种柔软的东西迅速缩回去。他说那是小蟹，潮水一走它们就往深处钻，“比人聪明”。</p>
+      <p>回程的堤岸上长满了互花米草，风一过就整片倒向同一边。老陈说，草底下原来都是泥滩，后来围垦、修路、种树，水进不来，石头也就不再被磨了。“石头停下来，就变老了。”他说完自己笑了一下，像是觉得这句话太文艺，不像他会说的。</p>
+      <p>下午三点，潮水重新漫过我们清晨走过的路。那些石头、脚印、盐痕，都被盖在一层浅水下面。从堤上望过去，河口恢复了它一贯的样子：平静，含糊，好像什么都没发生过。只有老陈的编织袋放在脚边，里面的贝壳还在轻轻响。</p>
+      <p>我后来常常想起那天。不是因为看见了什么壮观的景象，而是因为老陈那套缓慢的辨认方式：看石头，看水线，看一袋贝壳的重量。它不解释世界，只是把世界读得更慢一点。在这个什么都讲求实时的年代，慢本身就像一种小小的抵抗。</p>
+    </article>
+
+    <ol class="footnotes">
+      <li id="fn1">“潮痕”并非严格的科学术语，是当地渔民对最高潮位残留痕迹的俗称。</li>
+    </ol>
+
+    <div class="colophon">
+      <span>自制示例 · 非真实人物与地点</span>
+      <span>排版：衬线 / 双栏阅读宽度</span>
+    </div>
+  </main>
+</body>
+</html>

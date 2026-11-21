@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gradient Forge · 渐变工坊</title>
+<style>
+  :root{
+    --paper: #F4F0E8;
+    --panel: #FBF9F4;
+    --ink: #211F1A;
+    --muted: #726D63;
+    --faint: #9B9588;
+    --line: #DDD6C8;
+    --accent: #D4552B;
+    --mono: ui-monospace, "SF Mono", Consolas, monospace;
+  }
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  html, body{ min-height: 100%; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page{ min-height: 100vh; display: flex; flex-direction: column; padding: 22px clamp(18px, 3.4vw, 48px) 26px; }
+  .top{
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand{ font: 800 13px var(--mono); letter-spacing: .18em; }
+  .brand span{ color: var(--accent); }
+  .top .tag{
+    font: 10px var(--mono);
+    letter-spacing: .1em;
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 9px;
+  }
+  .top .right{ margin-left: auto; font: 10px var(--mono); color: var(--faint); letter-spacing: .08em; }
+
+  .layout{
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr);
+    gap: clamp(18px, 3vw, 36px);
+    padding-top: 22px;
+    align-items: start;
+  }
+  .preview-wrap{ position: sticky; top: 18px; }
+  .preview{
+    position: relative;
+    height: min(66vh, 620px);
+    min-height: 340px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    background:
+      radial-gradient(120% 100% at 20% 0%, #FFE7D3 0%, rgba(255,231,211,0) 55%),
+      linear-gradient(135deg, #FF8F70, #6C5CE7 60%, #17112E);
+    box-shadow: 0 24px 50px rgba(33,31,26,.12);
+  }
+  .shader{ position: absolute; inset: 0; width: 100%; height: 100%; }
+  .preview__label{
+    position: absolute; left: 16px; bottom: 14px; z-index: 2;
+    display: flex; align-items: center; gap: 9px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(20,17,26,.36);
+    border: 1px solid rgba(255,255,255,.28);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    font: 9.5px var(--mono);
+    letter-spacing: .1em;
+  }
+  .preview__label i{ width: 5px; height: 5px; border-radius: 50%; background: #D8FF4F; }
+  .warn{
+    position: absolute; left: 16px; top: 16px; right: 16px; z-index: 3;
+    padding: 8px 11px;
+    border-radius: 7px;
+    background: rgba(10,8,6,.62);
+    border-left: 2px solid #E3A04A;
+    font-size: 11px;
+    line-height: 1.65;
+    color: #E5D4B7;
+  }
+  .caption{
+    display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+    margin-top: 11px;
+    font: 10px var(--mono); color: var(--faint); letter-spacing: .06em;
+  }
+
+  .panel{
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--panel);
+    padding: 18px;
+    box-shadow: 0 12px 30px rgba(33,31,26,.05);
+  }
+  .panel h1{ font-size: 20px; letter-spacing: -.01em; margin-bottom: 5px; }
+  .panel .sub{ font-size: 11.5px; color: var(--muted); line-height: 1.7; margin-bottom: 16px; }
+  .section{ padding: 14px 0; border-top: 1px solid var(--line); }
+  .section:first-of-type{ border-top: 0; padding-top: 0; }
+  .section__head{
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 10px;
+    font: 9.5px var(--mono); letter-spacing: .12em; color: var(--faint); text-transform: uppercase;
+  }
+  .section__head b{ color: var(--accent); font-weight: 500; letter-spacing: 0; }
+  .presets{ display: flex; gap: 6px; flex-wrap: wrap; }
+  .preset{
+    padding: 6px 11px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #FFF;
+    color: var(--muted);
+    font: inherit; font-size: 11px;
+    cursor: pointer;
+  }
+  .preset:hover{ border-color: var(--accent); color: var(--accent); }
+  .colors{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .color{ display: flex; flex-direction: column; gap: 5px; font-size: 10.5px; color: var(--muted); }
+  .color input{
+    width: 100%; height: 38px;
+    padding: 3px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #FFF;
+    cursor: pointer;
+  }
+  .control{ display: block; margin-bottom: 12px; }
+  .control:last-child{ margin-bottom: 0; }
+  .control .row{
+    display: flex; justify-content: space-between; gap: 10px;
+    margin-bottom: 5px;
+    font-size: 11.5px;
+    color: #4A463F;
+  }
+  .control .row b{ font: 10.5px var(--mono); color: var(--accent); font-weight: 500; }
+  input[type="range"]{ width: 100%; accent-color: var(--accent); }
+  .toggle{ display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: #4A463F; }
+  .toggle input{ accent-color: var(--accent); }
+  .actions{ display: flex; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .btn{
+    flex: 1;
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #FFF;
+    color: var(--ink);
+    font: inherit; font-size: 11.5px;
+    cursor: pointer;
+  }
+  .btn:hover{ border-color: var(--accent); color: var(--accent); }
+  .btn.primary{
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #FFF;
+  }
+  .btn.primary:hover{ background: var(--accent); border-color: var(--accent); color: #FFF; }
+  .code{
+    margin-top: 12px;
+    padding: 11px 12px;
+    border: 1px solid #2A2721;
+    border-radius: 9px;
+    background: #191713;
+    color: #D8D2C4;
+    font: 10px/1.75 var(--mono);
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+  .code b{ color: #FFB38F; font-weight: 500; }
+  @media (max-width: 900px){
+    .layout{ grid-template-columns: 1fr; }
+    .preview-wrap{ position: static; }
+    .preview{ height: 46vh; min-height: 300px; }
+  }
+</style>
+</head>
+<body>
+  <div id="app">
+    <div class="page">
+      <header class="top">
+        <div class="brand">GRADIENT FORGE<span>.</span></div>
+        <span class="tag">Vue 3 × shaders</span>
+        <span class="right">MESH GRADIENT / LIVE</span>
+      </header>
+
+      <div class="layout">
+        <div class="preview-wrap">
+          <div class="preview">
+            <shader
+              class="shader"
+              :disable-telemetry="true"
+              @unavailable="gpuError = $event"
+            >
+              <mesh-gradient
+                :color-a="colorA"
+                :color-b="colorB"
+                :count="count"
+                :smoothness="smoothness"
+                :variation="variation"
+                :swirl="swirl"
+                :drift="drift"
+                color-space="oklab"
+              />
+              <film-grain v-if="grain" :strength="0.16" :animated="true" />
+            </shader>
+            <div class="warn" v-if="gpuError">当前浏览器未启用 WebGPU（{{ gpuError || 'unknown' }}），渐变预览不可用。若通过局域网 IP 的 http:// 打开，浏览器会禁用 WebGPU；请改用 localhost / 127.0.0.1 或 HTTPS。</div>
+            <div class="preview__label"><i></i>GPU COMPOSITE · 60 FPS</div>
+          </div>
+          <div class="caption">
+            <span>#{{ colorA.replace('#','').toUpperCase() }} → #{{ colorB.replace('#','').toUpperCase() }}</span>
+            <span>{{ count }} 个色点 · swirl {{ swirl.toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <aside class="panel">
+          <h1>渐变工坊</h1>
+          <p class="sub">用 Vue 的响应式状态直接驱动 MeshGradient 的 uniform。所有变化即时生效。</p>
+
+          <div class="section">
+            <div class="section__head"><span>预设</span><span>PRESETS</span></div>
+            <div class="presets">
+              <button class="preset" type="button" v-for="(preset, index) in presets" :key="index" @click="applyPreset(preset)">
+                {{ preset.name }}
+              </button>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section__head"><span>颜色</span><span>COLOR</span></div>
+            <div class="colors">
+              <label class="color">颜色 A <input type="color" v-model="colorA" /></label>
+              <label class="color">颜色 B <input type="color" v-model="colorB" /></label>
+            </div>
+          </div>
+
+          <div class="section">
+            <div class="section__head"><span>参数</span><span>PROPS</span></div>
+            <label class="control">
+              <span class="row"><span>色点数量 count</span><b>{{ count }}</b></span>
+              <input type="range" min="2" max="8" step="1" v-model.number="count" />
+            </label>
+            <label class="control">
+              <span class="row"><span>柔和度 smoothness</span><b>{{ smoothness.toFixed(1) }}</b></span>
+              <input type="range" min="0.5" max="5" step="0.1" v-model.number="smoothness" />
+            </label>
+            <label class="control">
+              <span class="row"><span>变化 variation</span><b>{{ variation.toFixed(2) }}</b></span>
+              <input type="range" min="0" max="1" step="0.01" v-model.number="variation" />
+            </label>
+            <label class="control">
+              <span class="row"><span>旋涡 swirl</span><b>{{ swirl.toFixed(2) }}</b></span>
+              <input type="range" min="-1" max="1" step="0.01" v-model.number="swirl" />
+            </label>
+            <label class="control">
+              <span class="row"><span>漂移 drift</span><b>{{ drift.toFixed(2) }}</b></span>
+              <input type="range" min="0" max="1" step="0.01" v-model.number="drift" />
+            </label>
+            <label class="toggle"><input type="checkbox" v-model="grain" /> 叠加胶片颗粒</label>
+          </div>
+
+          <div class="actions">
+            <button class="btn" type="button" @click="randomize">随机</button>
+            <button class="btn primary" type="button" @click="copyCode">{{ copied ? '已复制' : '复制参数' }}</button>
+          </div>
+
+          <div class="code">{{ snippet }}</div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script src="./vendor/vue-runtime.js"></script>
+  <script>
+    const { Vue, Shaders } = window.HSPV_VUE;
+    const { createApp, ref, computed } = Vue;
+    const { Shader, MeshGradient, FilmGrain } = Shaders;
+
+    function randomHex(){
+      const value = Math.floor(Math.random() * 0xFFFFFF);
+      return '#' + value.toString(16).padStart(6, '0').toUpperCase();
+    }
+
+    createApp({
+      components: { Shader, MeshGradient, FilmGrain },
+      setup(){
+        const presets = [
+          { name: '日落', colorA: '#FF8F70', colorB: '#6C5CE7', count: 5, smoothness: 2, variation: 0.35, swirl: 0.3, drift: 0.5 },
+          { name: '薄荷糖', colorA: '#B8F2E6', colorB: '#5E60CE', count: 6, smoothness: 2.8, variation: 0.6, swirl: -0.4, drift: 0.65 },
+          { name: '铁锈', colorA: '#3A1C1A', colorB: '#D98A4A', count: 4, smoothness: 1.4, variation: 0.22, swirl: 0.12, drift: 0.3 },
+          { name: '电光', colorA: '#00E5FF', colorB: '#FF2F7A', count: 7, smoothness: 1.8, variation: 0.8, swirl: 0.8, drift: 0.8 },
+        ];
+
+        const colorA = ref(presets[0].colorA);
+        const colorB = ref(presets[0].colorB);
+        const count = ref(presets[0].count);
+        const smoothness = ref(presets[0].smoothness);
+        const variation = ref(presets[0].variation);
+        const swirl = ref(presets[0].swirl);
+        const drift = ref(presets[0].drift);
+        const grain = ref(true);
+        const gpuError = ref('');
+        const copied = ref(false);
+        const snippet = computed(() => `<MeshGradient
+  colorA="${colorA.value}"
+  colorB="${colorB.value}"
+  count={${count.value}} swirl={${swirl.value.toFixed(2)}}
+  smoothness={${smoothness.value.toFixed(1)}} drift={${drift.value.toFixed(2)}} />`);
+
+        function applyPreset(preset){
+          colorA.value = preset.colorA;
+          colorB.value = preset.colorB;
+          count.value = preset.count;
+          smoothness.value = preset.smoothness;
+          variation.value = preset.variation;
+          swirl.value = preset.swirl;
+          drift.value = preset.drift;
+        }
+
+        function randomize(){
+          colorA.value = randomHex();
+          colorB.value = randomHex();
+          count.value = Math.floor(Math.random() * 7) + 2;
+          smoothness.value = Number((Math.random() * 4 + 0.6).toFixed(1));
+          variation.value = Number(Math.random().toFixed(2));
+          swirl.value = Number((Math.random() * 1.6 - 0.8).toFixed(2));
+          drift.value = Number(Math.random().toFixed(2));
+        }
+
+        async function copyCode(){
+          const text = `<MeshGradient colorA="${colorA.value}" colorB="${colorB.value}" count={${count.value}} smoothness={${smoothness.value.toFixed(1)}} swirl={${swirl.value.toFixed(2)}} drift={${drift.value.toFixed(2)}} />`;
+          try {
+            await navigator.clipboard.writeText(text);
+            copied.value = true;
+          } catch {
+            copied.value = false;
+          }
+          setTimeout(() => { copied.value = false; }, 1500);
+        }
+
+        return {
+          presets, colorA, colorB, count, smoothness, variation, swirl, drift,
+          grain, gpuError, copied, snippet, applyPreset, randomize, copyCode,
+        };
+      },
+    }).mount('#app');
+  </script>
+</body>
+</html>

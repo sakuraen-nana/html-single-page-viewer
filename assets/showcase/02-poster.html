@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>字即声音 · 字体海报</title>
+<style>
+  :root{
+    --paper: #F1EDE4;
+    --ink: #141311;
+    --red: #E23D28;
+  }
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  html, body{ height: 100%; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Helvetica, Arial, "Noto Sans CJK SC", "PingFang SC", sans-serif;
+    overflow: hidden;
+  }
+  .poster{
+    position: relative;
+    height: 100vh;
+    min-height: 420px;
+    background:
+      repeating-linear-gradient(90deg, transparent 0 calc(100% / 12 - 1px), rgba(20,19,17,.05) calc(100% / 12 - 1px) calc(100% / 12)),
+      var(--paper);
+  }
+  .meta{
+    position: absolute; top: 26px; left: 36px; right: 36px;
+    display: flex; align-items: center; gap: 18px;
+    font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase;
+  }
+  .meta .rule{ flex: 1; height: 1px; background: var(--ink); opacity: .35; }
+  .title{
+    position: absolute;
+    left: 4vw; bottom: 21%;
+    display: flex;
+    font-size: min(19.5vw, 32vh, 250px);
+    line-height: .82;
+    font-weight: 800;
+    letter-spacing: -.045em;
+    white-space: nowrap;
+    user-select: none;
+  }
+  .title .hollow{
+    color: transparent;
+    -webkit-text-stroke: 2px var(--ink);
+  }
+  .title .red{ color: var(--red); }
+  .side{
+    position: absolute; right: 26px; top: 96px;
+    writing-mode: vertical-rl;
+    font-size: 10px; letter-spacing: .44em; text-transform: uppercase;
+    color: var(--red);
+  }
+  .block{
+    position: absolute; left: 36px; bottom: 62px;
+    width: min(330px, 42vw);
+    font-size: 12.5px; line-height: 1.85;
+  }
+  .block .en{
+    margin-top: 8px;
+    font-size: 10.5px; line-height: 1.7;
+    color: #6F6A60;
+  }
+  .mark{
+    position: absolute; right: 44px; bottom: 62px;
+    width: clamp(76px, 9vw, 118px);
+    aspect-ratio: 1;
+    display: grid; place-items: center;
+    background: var(--red);
+    color: var(--paper);
+    font-size: clamp(30px, 4vw, 52px);
+    font-weight: 700;
+    letter-spacing: -.03em;
+  }
+  .mark::before{
+    content: "";
+    position: absolute; inset: 8px;
+    border: 1px solid rgba(241,237,228,.45);
+    pointer-events: none;
+  }
+  .foot{
+    position: absolute; left: 36px; right: 36px; bottom: 16px;
+    display: flex; justify-content: space-between;
+    font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase;
+    color: #6F6A60;
+  }
+  @media (max-width: 640px){
+    .block{ width: 56vw; font-size: 11.5px; }
+    .side{ display: none; }
+    .title{ bottom: 30%; }
+  }
+</style>
+</head>
+<body>
+  <div class="poster">
+    <div class="meta">
+      <span>Type / Poster</span>
+      <span class="rule"></span>
+      <span>No. 004 — 2026</span>
+    </div>
+    <h1 class="title" aria-label="字即声音">
+      <span>字</span><span class="hollow">即</span><span>声</span><span class="red">音</span>
+    </h1>
+    <div class="side">Typography is a voice — not a decoration</div>
+    <div class="block">
+      <p>当文字被放大到占据整个视野，它不再只是信息的容器，而成为一种可以被听见的形状。</p>
+      <p class="en">When type fills the frame, it stops carrying meaning and starts making sound.</p>
+    </div>
+    <div class="mark">04</div>
+    <div class="foot">
+      <span>自制示例 / Self-initiated</span>
+      <span>Helvetica × 汉字</span>
+      <span>2026.11</span>
+    </div>
+  </div>
+</body>
+</html>

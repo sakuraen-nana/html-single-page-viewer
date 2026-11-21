@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nimbus · 运行状态</title>
+<style>
+  :root{
+    --bg: #0B1016;
+    --panel: #111923;
+    --panel-2: #16202C;
+    --line: #1E2A38;
+    --text: #E7EEF6;
+    --muted: #8291A3;
+    --faint: #5A6878;
+    --teal: #3ED6C4;
+    --amber: #F0B45C;
+    --red: #EF6B6B;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Consolas, monospace;
+  }
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  html, body{ min-height: 100%; }
+  body{
+    background:
+      radial-gradient(1100px 480px at 12% -12%, #122230 0%, rgba(11,16,22,0) 60%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    padding: 24px clamp(16px, 3vw, 40px) 36px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .top{ display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+  .brand{ display: flex; align-items: center; gap: 10px; font-weight: 650; letter-spacing: .04em; }
+  .logo{
+    width: 28px; height: 28px; border-radius: 8px;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, var(--teal), #2B7F8E);
+    color: #06201D; font: 800 13px var(--mono);
+  }
+  .env{
+    font: 10px var(--mono); letter-spacing: .14em;
+    color: var(--teal);
+    border: 1px solid rgba(62,214,196,.35);
+    border-radius: 999px;
+    padding: 2px 8px;
+  }
+  .status{ margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .pulse{
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 0 0 rgba(62,214,196,.45);
+    animation: pulse 2.2s infinite;
+  }
+  @keyframes pulse{
+    70%{ box-shadow: 0 0 0 9px rgba(62,214,196,0); }
+    100%{ box-shadow: 0 0 0 0 rgba(62,214,196,0); }
+  }
+  .clock{ font: 12px var(--mono); color: var(--faint); min-width: 156px; text-align: right; }
+
+  .kpis{ display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
+  .card{
+    background: linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,0) 60%), var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 16px 18px;
+  }
+  .kpi .label{ font-size: 11px; color: var(--muted); letter-spacing: .06em; }
+  .kpi strong{ display: block; margin-top: 9px; font: 600 26px/1.1 var(--mono); letter-spacing: -.02em; }
+  .kpi .foot{ margin-top: 8px; display: flex; gap: 8px; align-items: baseline; font: 11px var(--mono); color: var(--teal); }
+  .kpi .foot.warn{ color: var(--amber); }
+  .kpi .foot span{ color: var(--faint); font-family: inherit; }
+
+  .grid{ display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 12px; margin-top: 12px; }
+  .grid.lower{ grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); }
+  .card h2{
+    display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+    margin-bottom: 14px;
+    font-size: 12px; font-weight: 500; color: var(--muted);
+  }
+  .card h2 span{ font: 10px var(--mono); color: var(--faint); letter-spacing: .04em; }
+  .chart svg{ width: 100%; height: auto; display: block; }
+  .regions{ display: flex; flex-direction: column; gap: 15px; margin-top: 4px; }
+  .region .row{ display: flex; justify-content: space-between; gap: 8px; font-size: 12px; margin-bottom: 6px; }
+  .region .row b{ font: 11px var(--mono); color: var(--muted); font-weight: 500; }
+  .bar{ height: 6px; border-radius: 3px; background: #1B2633; overflow: hidden; }
+  .bar i{ display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #2A8C82, var(--teal)); }
+
+  table{ width: 100%; border-collapse: collapse; font-size: 12px; }
+  th{
+    padding: 0 0 8px; border-bottom: 1px solid var(--line);
+    text-align: left; font-size: 10px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: .12em; color: var(--faint);
+  }
+  td{ padding: 10px 0; border-bottom: 1px solid rgba(30,42,56,.65); color: #C9D3DF; }
+  tr:last-child td{ border-bottom: 0; }
+  td.num{ text-align: right; font: 11.5px var(--mono); color: var(--muted); }
+  .svc{ display: flex; align-items: center; gap: 8px; }
+  .dot{ width: 6px; height: 6px; border-radius: 50%; background: var(--teal); flex: none; }
+  .dot.amber{ background: var(--amber); }
+  .tag{
+    display: inline-block; font: 10px var(--mono);
+    color: var(--amber); border: 1px solid rgba(240,180,92,.4);
+    border-radius: 4px; padding: 1px 5px;
+  }
+
+  .events{ list-style: none; display: flex; flex-direction: column; gap: 13px; }
+  .events li{ display: grid; grid-template-columns: 48px minmax(0,1fr); gap: 10px; font-size: 12px; line-height: 1.6; color: #B9C4D1; }
+  .events time{ font: 10.5px var(--mono); color: var(--faint); padding-top: 1px; }
+  .events b{ color: var(--text); font-weight: 500; }
+
+  footer{
+    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    margin-top: 18px;
+    font: 10.5px var(--mono); color: var(--faint);
+  }
+  @media (max-width: 980px){
+    .kpis{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .grid, .grid.lower{ grid-template-columns: 1fr; }
+    .clock{ display: none; }
+  }
+  @media (max-width: 560px){
+    .kpis{ grid-template-columns: 1fr; }
+    .status{ margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><span class="logo">N</span> Nimbus <span class="env">PROD</span></div>
+    <div class="status"><span class="pulse"></span> 所有系统运行正常</div>
+    <div class="clock" id="clock">--:--:--</div>
+  </header>
+
+  <section class="kpis" aria-label="关键指标">
+    <article class="card kpi">
+      <div class="label">过去 24h 请求</div>
+      <strong id="kpi-requests">1,248,903</strong>
+      <div class="foot">+12.4% <span>较昨日</span></div>
+    </article>
+    <article class="card kpi">
+      <div class="label">P95 延迟</div>
+      <strong id="kpi-latency">182 ms</strong>
+      <div class="foot">-8 ms <span>较上周均值</span></div>
+    </article>
+    <article class="card kpi">
+      <div class="label">错误率</div>
+      <strong id="kpi-errors">0.42%</strong>
+      <div class="foot warn">+0.03% <span>轻微上升</span></div>
+    </article>
+    <article class="card kpi">
+      <div class="label">在线节点</div>
+      <strong>36 / 36</strong>
+      <div class="foot">100% <span>健康检查通过</span></div>
+    </article>
+  </section>
+
+  <section class="grid">
+    <article class="card chart">
+      <h2>请求量 <span>过去 24 小时 · 5 分钟粒度</span></h2>
+      <svg viewBox="0 0 640 230" role="img" aria-label="过去 24 小时请求量折线图，整体平稳，夜间有回落">
+        <defs>
+          <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#3ED6C4" stop-opacity=".30"/>
+            <stop offset="1" stop-color="#3ED6C4" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <g stroke="#1B2633" stroke-width="1">
+          <line x1="36" y1="24" x2="620" y2="24"/>
+          <line x1="36" y1="76" x2="620" y2="76"/>
+          <line x1="36" y1="128" x2="620" y2="128"/>
+          <line x1="36" y1="180" x2="620" y2="180"/>
+        </g>
+        <g fill="#5A6878" font-family="ui-monospace, monospace" font-size="9">
+          <text x="0" y="27">12k</text>
+          <text x="0" y="79">8k</text>
+          <text x="0" y="131">4k</text>
+          <text x="6" y="183">0</text>
+        </g>
+        <path d="M36 148 C 70 138, 90 106, 126 116 S 190 154, 226 130 S 290 72, 326 92 S 390 136, 426 106 S 490 50, 526 70 S 590 98, 620 58 L620 180 L36 180 Z" fill="url(#areaFill)"/>
+        <path d="M36 148 C 70 138, 90 106, 126 116 S 190 154, 226 130 S 290 72, 326 92 S 390 136, 426 106 S 490 50, 526 70 S 590 98, 620 58" fill="none" stroke="#3ED6C4" stroke-width="2" stroke-linecap="round"/>
+        <path d="M36 164 C 80 158, 120 170, 168 160 S 250 176, 300 162 S 380 174, 432 160 S 520 172, 560 158 S 600 164, 620 154" fill="none" stroke="#F0B45C" stroke-width="1.4" stroke-dasharray="4 4" opacity=".65"/>
+        <g fill="#5A6878" font-family="ui-monospace, monospace" font-size="9">
+          <text x="36" y="206">00:00</text>
+          <text x="178" y="206">06:00</text>
+          <text x="320" y="206">12:00</text>
+          <text x="462" y="206">18:00</text>
+          <text x="594" y="206">24:00</text>
+        </g>
+        <g font-family="ui-monospace, monospace" font-size="9">
+          <circle cx="542" cy="16" r="3" fill="#3ED6C4"/>
+          <text x="550" y="19" fill="#8291A3">请求量</text>
+          <line x1="590" y1="16" x2="602" y2="16" stroke="#F0B45C" stroke-dasharray="3 3"/>
+          <text x="606" y="19" fill="#8291A3">P95</text>
+        </g>
+      </svg>
+    </article>
+
+    <article class="card">
+      <h2>区域流量 <span>占比</span></h2>
+      <div class="regions">
+        <div class="region">
+          <div class="row"><span>东京 ap-northeast-1</span><b>42%</b></div>
+          <div class="bar"><i style="width:42%"></i></div>
+        </div>
+        <div class="region">
+          <div class="row"><span>新加坡 ap-southeast-1</span><b>27%</b></div>
+          <div class="bar"><i style="width:27%"></i></div>
+        </div>
+        <div class="region">
+          <div class="row"><span>法兰克福 eu-central-1</span><b>19%</b></div>
+          <div class="bar"><i style="width:19%"></i></div>
+        </div>
+        <div class="region">
+          <div class="row"><span>弗吉尼亚 us-east-1</span><b>12%</b></div>
+          <div class="bar"><i style="width:12%"></i></div>
+        </div>
+      </div>
+    </article>
+  </section>
+
+  <section class="grid lower">
+    <article class="card">
+      <h2>服务状态 <span>6 个关键服务</span></h2>
+      <table>
+        <thead>
+          <tr><th>服务</th><th>状态</th><th>P95</th><th style="text-align:right">区域</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="svc"><span class="dot"></span>api-gateway</span></td><td>正常</td><td class="num">42 ms</td><td class="num">东京</td></tr>
+          <tr><td><span class="svc"><span class="dot"></span>auth-service</span></td><td>正常</td><td class="num">18 ms</td><td class="num">新加坡</td></tr>
+          <tr><td><span class="svc"><span class="dot"></span>ledger-core</span></td><td>正常</td><td class="num">61 ms</td><td class="num">法兰克福</td></tr>
+          <tr><td><span class="svc"><span class="dot"></span>search-index</span></td><td>正常</td><td class="num">88 ms</td><td class="num">东京</td></tr>
+          <tr><td><span class="svc"><span class="dot amber"></span>media-worker</span></td><td><span class="tag">降级</span></td><td class="num">214 ms</td><td class="num">弗吉尼亚</td></tr>
+          <tr><td><span class="svc"><span class="dot"></span>cron-runner</span></td><td>正常</td><td class="num">7 ms</td><td class="num">新加坡</td></tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article class="card">
+      <h2>最近事件 <span>今天</span></h2>
+      <ul class="events">
+        <li><time>14:32</time><span>部署 <b>api-gateway v2.18.3</b> 完成，灰度比例已到 100%。</span></li>
+        <li><time>13:05</time><span><b>法兰克福</b>节点自动扩容 +2，触发规则 CPU &gt; 78%。</span></li>
+        <li><time>11:47</time><span><b>media-worker</b> 队列延迟恢复至阈值以下。</span></li>
+        <li><time>09:12</time><span>边缘证书轮换完成，<b>0</b> 次握手失败。</span></li>
+      </ul>
+    </article>
+  </section>
+
+  <footer>
+    <span>数据每 30 秒自动刷新 · 演示用假数据</span>
+    <span id="updated">最后更新 --:--:--</span>
+  </footer>
+
+<script>
+  const clock = document.getElementById('clock');
+  const updated = document.getElementById('updated');
+  const requests = document.getElementById('kpi-requests');
+  const latency = document.getElementById('kpi-latency');
+  const errors = document.getElementById('kpi-errors');
+  let baseRequests = 1248903;
+
+  function two(n){ return String(n).padStart(2, '0'); }
+
+  function tick(){
+    const now = new Date();
+    clock.textContent = `${two(now.getHours())}:${two(now.getMinutes())}:${two(now.getSeconds())}`;
+  }
+
+  function refresh(){
+    baseRequests += Math.floor(Math.random() * 180) + 20;
+    requests.textContent = baseRequests.toLocaleString('en-US');
+    latency.textContent = `${Math.floor(Math.random() * 8) + 178} ms`;
+    errors.textContent = `${(0.38 + Math.random() * 0.08).toFixed(2)}%`;
+    const now = new Date();
+    updated.textContent = `最后更新 ${two(now.getHours())}:${two(now.getMinutes())}:${two(now.getSeconds())}`;
+  }
+
+  tick();
+  refresh();
+  setInterval(tick, 1000);
+  setInterval(refresh, 3000);
+</script>
+</body>
+</html>

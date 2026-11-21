@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工作坊报名</title>
+<style>
+  :root{
+    --bg: #F1EFEA;
+    --card: #FFFFFF;
+    --ink: #232722;
+    --muted: #737A71;
+    --line: #DFE1DA;
+    --accent: #2F6B57;
+    --accent-soft: #E7F1EC;
+    --error: #B4483C;
+  }
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  html, body{ min-height: 100%; }
+  body{
+    background:
+      radial-gradient(800px 500px at 50% -10%, #E3EEE8 0%, rgba(227,238,232,0) 65%),
+      var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    padding: 34px 16px 60px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card{
+    width: min(100%, 720px);
+    margin: 0 auto;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: 0 18px 50px rgba(35,39,34,.08);
+    padding: clamp(24px, 4vw, 40px);
+  }
+  .kicker{
+    font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  h1{ margin-top: 10px; font-size: clamp(24px, 4vw, 30px); letter-spacing: -.01em; }
+  .sub{ margin-top: 8px; font-size: 13px; color: var(--muted); }
+
+  .steps{
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    margin: 30px 0 26px;
+  }
+  .steps::before{
+    content: "";
+    position: absolute; left: 18px; right: 18px; top: 15px;
+    height: 2px; background: var(--line);
+  }
+  .steps i{
+    position: absolute; left: 18px; top: 15px;
+    height: 2px; width: 0;
+    background: var(--accent);
+    transition: width .25s ease;
+    z-index: 1;
+  }
+  .step{
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    flex: 1;
+    font-size: 11px; color: var(--muted);
+  }
+  .step .num{
+    width: 32px; height: 32px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid var(--line);
+    font-size: 12px; font-weight: 600;
+    color: var(--muted);
+    transition: background .2s, border-color .2s, color .2s;
+  }
+  .step.is-active{ color: var(--ink); font-weight: 600; }
+  .step.is-active .num{ border-color: var(--accent); color: var(--accent); }
+  .step.is-done .num{ background: var(--accent); border-color: var(--accent); color: #fff; }
+  .step.is-done .num::after{ content: "✓"; }
+  .step.is-done .num span{ display: none; }
+  .step .num span{ line-height: 1; }
+
+  .panel{ display: none; }
+  .panel.is-active{ display: block; animation: panelIn .22s ease; }
+  @keyframes panelIn{ from{ opacity: 0; transform: translateY(6px); } to{ opacity: 1; transform: none; } }
+
+  .field{ display: block; margin-bottom: 20px; }
+  .field > span:first-child, .field legend{
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .field i{ color: var(--error); font-style: normal; }
+  .field small{ font-weight: 400; color: var(--muted); }
+  fieldset.field{ border: 0; }
+  input[type="text"], input[type="email"], textarea{
+    width: 100%;
+    padding: 11px 13px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: #FCFCFA;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13.5px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input[type="text"]:focus, input[type="email"]:focus, textarea:focus{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(47,107,87,.12);
+  }
+  textarea{ resize: vertical; min-height: 104px; line-height: 1.7; }
+  .field.has-error input, .field.has-error textarea{ border-color: var(--error); }
+  .error{ display: block; margin-top: 6px; font-size: 11.5px; color: var(--error); min-height: 1em; }
+
+  .choices{ display: flex; gap: 8px; flex-wrap: wrap; }
+  .choice input, .chip input{ position: absolute; opacity: 0; pointer-events: none; }
+  .choice span, .chip span{
+    display: inline-flex; align-items: center;
+    padding: 9px 14px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    font-size: 12.5px;
+    cursor: pointer;
+    background: #FCFCFA;
+    transition: border-color .15s, background .15s, color .15s;
+  }
+  .choice input:checked + span, .chip input:checked + span{
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .choice input:focus-visible + span, .chip input:focus-visible + span{
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .chips{ display: flex; gap: 8px; flex-wrap: wrap; }
+  .chips .chip span{ border-radius: 999px; padding: 7px 13px; }
+
+  .range-head{ display: flex; justify-content: space-between; align-items: baseline; }
+  .range-head b{ font-size: 13px; color: var(--accent); }
+  input[type="range"]{
+    width: 100%;
+    margin: 10px 0 4px;
+    accent-color: var(--accent);
+  }
+  .range-scale{
+    display: flex; justify-content: space-between;
+    font-size: 10.5px; color: var(--muted);
+  }
+  .count{
+    display: block; margin-top: 6px; text-align: right;
+    font-size: 10.5px; color: var(--muted);
+  }
+  .check{
+    display: flex; align-items: flex-start; gap: 9px;
+    margin-top: 8px;
+    font-size: 12.5px; line-height: 1.6; color: var(--muted);
+    cursor: pointer;
+  }
+  .check input{ margin-top: 2px; accent-color: var(--accent); }
+  .check a{ color: var(--accent); }
+
+  .actions{
+    display: flex; justify-content: space-between; gap: 10px;
+    margin-top: 26px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+  .actions .spacer{ flex: 1; }
+  .btn{
+    padding: 10px 22px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: .15s;
+  }
+  .btn:hover{ border-color: #B9BDB4; }
+  .btn.primary{
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    min-width: 110px;
+  }
+  .btn.primary:hover{ background: #255746; border-color: #255746; }
+
+  .success{ text-align: center; padding: 14px 0 6px; }
+  .success[hidden]{ display: none; }
+  .success__mark{
+    width: 54px; height: 54px;
+    margin: 0 auto 16px;
+    display: grid; place-items: center;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 24px;
+  }
+  .success h2{ font-size: 21px; }
+  .success > p{ margin-top: 8px; font-size: 12.5px; color: var(--muted); }
+  .summary{
+    margin: 22px auto 0;
+    max-width: 440px;
+    text-align: left;
+    border-top: 1px solid var(--line);
+  }
+  .summary div{
+    display: flex; justify-content: space-between; gap: 18px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 12.5px;
+  }
+  .summary dt{ color: var(--muted); flex: none; }
+  .summary dd{ text-align: right; }
+  .success .btn{ margin-top: 22px; }
+
+  @media (max-width: 560px){
+    .step{ font-size: 10px; }
+    .actions .btn{ flex: 1; }
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="kicker">Workshop · 2026 Winter</div>
+    <h1>设计工作坊报名</h1>
+    <p class="sub">12 月 6 日 · 线上 + 线下同步 · 限额 30 人</p>
+
+    <div class="steps" id="steps">
+      <div class="step is-active" data-step="1"><span class="num"><span>1</span></span>基本信息</div>
+      <div class="step" data-step="2"><span class="num"><span>2</span></span>兴趣偏好</div>
+      <div class="step" data-step="3"><span class="num"><span>3</span></span>确认提交</div>
+      <i id="progress"></i>
+    </div>
+
+    <form id="form" novalidate>
+      <section class="panel is-active" data-panel="1">
+        <label class="field" id="field-name">
+          <span>姓名 <i>*</i></span>
+          <input id="name" name="name" type="text" placeholder="怎么称呼你" autocomplete="name">
+          <small class="error" data-error-for="name"></small>
+        </label>
+        <label class="field" id="field-email">
+          <span>邮箱 <i>*</i></span>
+          <input id="email" name="email" type="email" placeholder="you@example.com" autocomplete="email">
+          <small class="error" data-error-for="email"></small>
+        </label>
+        <fieldset class="field" id="field-team">
+          <legend>团队规模 <i>*</i></legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="team" value="1–5 人"><span>1–5 人</span></label>
+            <label class="choice"><input type="radio" name="team" value="6–20 人"><span>6–20 人</span></label>
+            <label class="choice"><input type="radio" name="team" value="21 人以上"><span>21 人以上</span></label>
+            <label class="choice"><input type="radio" name="team" value="独立创作者"><span>独立创作者</span></label>
+          </div>
+          <small class="error" data-error-for="team"></small>
+        </fieldset>
+      </section>
+
+      <section class="panel" data-panel="2">
+        <fieldset class="field" id="field-topics">
+          <legend>感兴趣的主题 <i>*</i> <small>可多选</small></legend>
+          <div class="chips">
+            <label class="chip"><input type="checkbox" name="topics" value="字体排印"><span>字体排印</span></label>
+            <label class="chip"><input type="checkbox" name="topics" value="数据可视化"><span>数据可视化</span></label>
+            <label class="chip"><input type="checkbox" name="topics" value="叙事设计"><span>叙事设计</span></label>
+            <label class="chip"><input type="checkbox" name="topics" value="前端工程"><span>前端工程</span></label>
+            <label class="chip"><input type="checkbox" name="topics" value="品牌系统"><span>品牌系统</span></label>
+            <label class="chip"><input type="checkbox" name="topics" value="动效"><span>动效</span></label>
+          </div>
+          <small class="error" data-error-for="topics"></small>
+        </fieldset>
+
+        <label class="field">
+          <span class="range-head"><span>预算范围</span><b id="budget-value">¥1,500</b></span>
+          <input type="range" id="budget" min="0" max="5000" step="100" value="1500">
+          <span class="range-scale"><span>¥0</span><span>¥5,000</span></span>
+        </label>
+      </section>
+
+      <section class="panel" data-panel="3">
+        <label class="field">
+          <span>备注 <small>可选，最多 200 字</small></span>
+          <textarea id="note" maxlength="200" placeholder="想提前了解的问题、作品链接，或任何想告诉我们的事。"></textarea>
+          <span class="count"><b id="note-count">0</b>/200</span>
+        </label>
+        <label class="check" id="field-agree">
+          <input type="checkbox" id="agree">
+          <span>我已阅读并同意 <a href="#">工作坊参与条款</a>，并确认当天可以参加。</span>
+        </label>
+        <small class="error" data-error-for="agree"></small>
+      </section>
+
+      <div class="actions">
+        <button type="button" class="btn" id="prev" hidden>上一步</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn primary" id="next">下一步</button>
+        <button type="submit" class="btn primary" id="submit" hidden>提交报名</button>
+      </div>
+    </form>
+
+    <section class="success" id="success" hidden>
+      <div class="success__mark">✓</div>
+      <h2>报名已提交</h2>
+      <p>我们会在 2 个工作日内通过邮件与你确认。</p>
+      <dl class="summary" id="summary"></dl>
+      <button type="button" class="btn" id="restart">重新填写</button>
+    </section>
+  </main>
+
+<script>
+  const form = document.getElementById('form');
+  const panels = [...document.querySelectorAll('.panel')];
+  const steps = [...document.querySelectorAll('.step')];
+  const progress = document.getElementById('progress');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  const submitBtn = document.getElementById('submit');
+  const success = document.getElementById('success');
+  const summary = document.getElementById('summary');
+  const note = document.getElementById('note');
+  const noteCount = document.getElementById('note-count');
+  const budget = document.getElementById('budget');
+  const budgetValue = document.getElementById('budget-value');
+  let current = 1;
+
+  const patterns = {
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+  };
+
+  function setError(name, message){
+    const holder = form.querySelector(`[data-error-for="${name}"]`);
+    if (holder) holder.textContent = message || '';
+    const field = holder?.closest('.field, .check');
+    if (field) field.classList.toggle('has-error', Boolean(message));
+  }
+
+  function clearErrors(){
+    form.querySelectorAll('.error').forEach((node) => { node.textContent = ''; });
+    form.querySelectorAll('.has-error').forEach((node) => node.classList.remove('has-error'));
+  }
+
+  function setStep(step){
+    current = step;
+    panels.forEach((panel) => panel.classList.toggle('is-active', Number(panel.dataset.panel) === step));
+    steps.forEach((item) => {
+      const index = Number(item.dataset.step);
+      item.classList.toggle('is-active', index === step);
+      item.classList.toggle('is-done', index < step);
+    });
+    progress.style.width = `${((step - 1) / (steps.length - 1)) * 100}%`;
+    prevBtn.hidden = step === 1;
+    nextBtn.hidden = step === 3;
+    submitBtn.hidden = step !== 3;
+  }
+
+  function validate(step){
+    clearErrors();
+    let ok = true;
+
+    if (step === 1){
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const team = form.querySelector('input[name="team"]:checked');
+      if (!name) { setError('name', '请填写姓名。'); ok = false; }
+      if (!email) { setError('email', '请填写邮箱。'); ok = false; }
+      else if (!patterns.email.test(email)) { setError('email', '邮箱格式看起来不太对。'); ok = false; }
+      if (!team) { setError('team', '请选择团队规模。'); ok = false; }
+    }
+
+    if (step === 2){
+      const topics = form.querySelectorAll('input[name="topics"]:checked');
+      if (!topics.length) { setError('topics', '至少选择一个感兴趣的主题。'); ok = false; }
+    }
+
+    if (step === 3){
+      if (!document.getElementById('agree').checked) { setError('agree', '请先同意工作坊参与条款。'); ok = false; }
+    }
+
+    if (!ok){
+      const firstError = form.querySelector('.has-error');
+      if (firstError) firstError.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+    return ok;
+  }
+
+  nextBtn.addEventListener('click', () => {
+    if (validate(current)) setStep(Math.min(3, current + 1));
+  });
+
+  prevBtn.addEventListener('click', () => {
+    clearErrors();
+    setStep(Math.max(1, current - 1));
+  });
+
+  budget.addEventListener('input', () => {
+    budgetValue.textContent = `¥${Number(budget.value).toLocaleString('zh-CN')}`;
+  });
+
+  note.addEventListener('input', () => {
+    noteCount.textContent = String(note.value.length);
+  });
+
+  form.addEventListener('input', (event) => {
+    const name = event.target.getAttribute('name');
+    if (name) setError(name, '');
+    if (event.target.id === 'agree') setError('agree', '');
+  });
+
+  form.addEventListener('change', (event) => {
+    const name = event.target.getAttribute('name');
+    if (name) setError(name, '');
+    if (event.target.id === 'agree') setError('agree', '');
+  });
+
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    if (!validate(3)) return;
+
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const team = form.querySelector('input[name="team"]:checked')?.value || '—';
+    const topics = [...form.querySelectorAll('input[name="topics"]:checked')].map((input) => input.value);
+    const budgetLabel = `¥${Number(budget.value).toLocaleString('zh-CN')}`;
+    const noteText = note.value.trim() || '—';
+
+    const rows = [
+      ['姓名', name],
+      ['邮箱', email],
+      ['团队规模', team],
+      ['感兴趣的主题', topics.join('、')],
+      ['预算范围', budgetLabel],
+      ['备注', noteText],
+    ];
+
+    summary.replaceChildren();
+    for (const [label, value] of rows){
+      const row = document.createElement('div');
+      const dt = document.createElement('dt');
+      const dd = document.createElement('dd');
+      dt.textContent = label;
+      dd.textContent = value;
+      row.append(dt, dd);
+      summary.append(row);
+    }
+
+    form.hidden = true;
+    document.getElementById('steps').hidden = true;
+    success.hidden = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  document.getElementById('restart').addEventListener('click', () => {
+    form.reset();
+    noteCount.textContent = '0';
+    budgetValue.textContent = '¥1,500';
+    clearErrors();
+    setStep(1);
+    form.hidden = false;
+    document.getElementById('steps').hidden = false;
+    success.hidden = true;
+  });
+
+  setStep(1);
+  noteCount.textContent = String(note.value.length);
+</script>
+</body>
+</html>

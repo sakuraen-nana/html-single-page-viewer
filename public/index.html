@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>单页预览</title>
+<style>
+  :root{
+    color-scheme: light;
+    --bg: #F3F0E9;
+    --panel: #FBFAF6;
+    --panel-2: #F0ECE3;
+    --line: #D8D2C4;
+    --line-soft: #E7E2D7;
+    --text: #2B2822;
+    --muted: #6F6A5F;
+    --faint: #7C7669;
+    --gold: #8F6A2C;
+    --gold-line: #C08A4E;
+    --danger: #B0453A;
+    --well: #EDE9E0;
+    --tab-h: 56px;
+    font-family: "Noto Sans CJK SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden]{ display: none !important; }
+  html, body{ height: 100%; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── 左侧垂直标签栏 ───────────────────────────── */
+  .sidebar{
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+  }
+  .sidebar__head{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .sidebar__brand{
+    display: flex; flex-direction: column; gap: 2px;
+    min-width: 0;
+  }
+  .sidebar__title{
+    font-size: 13px; font-weight: 700; letter-spacing: 1.5px;
+    color: var(--gold);
+  }
+  .sidebar__sub{
+    font-size: 11.5px; color: var(--faint);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .icon-btn{
+    margin-left: auto;
+    display: grid; place-items: center;
+    width: 30px; height: 30px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color .15s, border-color .15s, transform .3s;
+  }
+  .icon-btn:hover{ color: var(--text); border-color: var(--gold-line); }
+  .icon-btn.spinning{ transform: rotate(360deg); }
+  .icon-btn svg{ width: 15px; height: 15px; }
+
+  .tabs{
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--line) transparent;
+  }
+  .tabs::-webkit-scrollbar{ width: 8px; }
+  .tabs::-webkit-scrollbar-thumb{ background: var(--line); border-radius: 4px; }
+
+  .tab{
+    position: relative;
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr) 16px;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: var(--tab-h);
+    padding: 8px 10px 8px 12px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    transition: background .12s, color .12s, border-color .12s;
+  }
+  .tab:hover{ background: var(--panel-2); color: var(--text); }
+  .tab.is-active{
+    background: #FFFFFF;
+    border-color: var(--line);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(43, 40, 34, .06);
+  }
+  .tab.is-active::before{
+    content: "";
+    position: absolute;
+    left: -1px; top: 10px; bottom: 10px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--gold);
+  }
+  .tab.is-error{ color: var(--danger); }
+  .tab.is-error .tab__index{ border-color: rgba(199,122,106,.45); color: var(--danger); }
+  .tab__index{
+    display: grid; place-items: center;
+    width: 26px; height: 26px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #FFFFFF;
+    font-size: 11px;
+    letter-spacing: .5px;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+  }
+  .tab.is-active .tab__index{ border-color: var(--gold-line); color: var(--gold); }
+  .tab__body{ min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .tab__title{
+    font-size: 13px;
+    line-height: 1.35;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tab__path{
+    font-size: 11px;
+    color: var(--faint);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    direction: rtl; text-align: left;
+  }
+  .tab__state{
+    justify-self: end;
+    font-size: 10px;
+    color: var(--danger);
+    white-space: nowrap;
+  }
+
+  .sidebar__foot{
+    padding: 10px 16px 12px;
+    border-top: 1px solid var(--line-soft);
+    font-size: 11px;
+    color: var(--faint);
+    line-height: 1.6;
+  }
+  .sidebar__foot code{
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 10.5px;
+  }
+
+  /* ── 右侧预览区 ───────────────────────────────── */
+  .stage{
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    background: var(--bg);
+  }
+  .stage__bar{
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 46px;
+    padding: 0 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+  }
+  .stage__indicator{
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--faint);
+    flex: none;
+  }
+  .stage__indicator.is-ok{ background: var(--gold); }
+  .stage__indicator.is-error{ background: var(--danger); }
+  .stage__label{
+    min-width: 0;
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  .stage__name{
+    font-size: 13px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .stage__src{
+    font-size: 11px;
+    color: var(--faint);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    direction: rtl;
+  }
+  .stage__actions{ margin-left: auto; display: flex; gap: 8px; flex: none; }
+  .action{
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: color .15s, border-color .15s;
+  }
+  .action:hover{ color: var(--text); border-color: var(--gold-line); }
+  .action svg{ width: 13px; height: 13px; }
+  .action[aria-disabled="true"]{ opacity: .45; pointer-events: none; }
+
+  .stage__frame{
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    background: var(--well);
+  }
+  iframe{
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+    /* 白色画布：无样式页面的默认黑字可见；页面自带背景会覆盖它 */
+    background: #fff;
+  }
+  .frame-mask{
+    position: absolute; inset: 0;
+    display: none;
+    place-items: center;
+    background: var(--well);
+    color: var(--muted);
+  }
+  .frame-mask.is-visible{ display: grid; }
+  .spinner{
+    width: 26px; height: 26px;
+    border: 2px solid var(--line);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin: 0 auto 14px;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .placeholder{
+    height: 100%;
+    display: grid;
+    place-items: center;
+    padding: 40px;
+    text-align: center;
+  }
+  .placeholder__inner{ max-width: 520px; }
+  .placeholder h2{
+    font-size: 16px; font-weight: 600; letter-spacing: .5px;
+    margin-bottom: 10px;
+  }
+  .placeholder p{
+    font-size: 13px; color: var(--muted); line-height: 1.8;
+  }
+  .placeholder code{
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 12px;
+    color: var(--gold);
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 2px 6px;
+  }
+  .placeholder .err{ color: var(--danger); }
+
+  .stage__error{
+    display: none;
+    height: 100%;
+    place-items: center;
+    padding: 40px;
+    text-align: center;
+  }
+  .stage__error.is-visible{ display: grid; }
+  .stage__error h2{ font-size: 15px; margin-bottom: 8px; color: var(--danger); }
+  .stage__error p{ font-size: 13px; color: var(--muted); line-height: 1.8; max-width: 560px; }
+
+  @media (max-width: 860px){
+    body{ grid-template-columns: 240px minmax(0, 1fr); }
+    .stage__src{ display: none; }
+  }
+  @media (max-width: 640px){
+    body{ grid-template-columns: 1fr; grid-template-rows: 42vh 58vh; }
+    .sidebar{ border-right: 0; border-bottom: 1px solid var(--line); }
+    .tabs{ flex-direction: row; overflow-x: auto; overflow-y: hidden; }
+    .tab{ min-width: 220px; min-height: 0; height: 100%; }
+    .tab.is-active::before{ left: 10px; right: 10px; top: auto; bottom: -1px; width: auto; height: 3px; border-radius: 3px 3px 0 0; }
+  }
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar__head">
+      <div class="sidebar__brand">
+        <span class="sidebar__title">单页预览</span>
+        <span class="sidebar__sub" id="count">正在读取列表…</span>
+      </div>
+      <button class="icon-btn" id="reload" type="button" title="重新读取 config.json" aria-label="重新读取列表">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      </button>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="页面列表"></nav>
+    <div class="sidebar__foot">
+      列表来源：<code>config.json</code><br>
+      路径相对于项目根目录
+    </div>
+  </aside>
+
+  <main class="stage">
+    <div class="stage__bar">
+      <span class="stage__indicator" id="indicator"></span>
+      <div class="stage__label">
+        <span class="stage__name" id="current-name">尚未选择</span>
+        <span class="stage__src" id="current-src"></span>
+      </div>
+      <div class="stage__actions">
+        <button class="action" id="refresh-frame" type="button" aria-disabled="true" title="重新载入当前页面">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+          重载
+        </button>
+        <a class="action" id="open-raw" href="#" target="_blank" rel="noopener" aria-disabled="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M21 3 10 14"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+          新标签页
+        </a>
+      </div>
+    </div>
+
+    <div class="stage__frame">
+      <div class="placeholder" id="placeholder">
+        <div class="placeholder__inner">
+          <h2 id="placeholder-title">选择一个页面</h2>
+          <p id="placeholder-text">从左侧列表中选择条目，右侧将载入对应的 HTML 单页。</p>
+        </div>
+      </div>
+      <div class="stage__error" id="stage-error">
+        <div>
+          <h2>无法显示该页面</h2>
+          <p id="stage-error-text"></p>
+        </div>
+      </div>
+      <iframe id="frame" title="页面预览" hidden></iframe>
+      <div class="frame-mask" id="frame-mask"><div><div class="spinner"></div>载入中…</div></div>
+    </div>
+  </main>
+
+<script>
+(() => {
+  const els = {
+    tabs: document.getElementById('tabs'),
+    count: document.getElementById('count'),
+    reload: document.getElementById('reload'),
+    frame: document.getElementById('frame'),
+    mask: document.getElementById('frame-mask'),
+    placeholder: document.getElementById('placeholder'),
+    placeholderTitle: document.getElementById('placeholder-title'),
+    placeholderText: document.getElementById('placeholder-text'),
+    stageError: document.getElementById('stage-error'),
+    stageErrorText: document.getElementById('stage-error-text'),
+    currentName: document.getElementById('current-name'),
+    currentSrc: document.getElementById('current-src'),
+    indicator: document.getElementById('indicator'),
+    refreshFrame: document.getElementById('refresh-frame'),
+    openRaw: document.getElementById('open-raw'),
+  };
+
+  let entries = [];
+  let activeIndex = null;
+
+  function setBarState(state) {
+    els.indicator.className = 'stage__indicator' +
+      (state === 'ok' ? ' is-ok' : state === 'error' ? ' is-error' : '');
+  }
+
+  function showPlaceholder(title, text) {
+    els.placeholderTitle.textContent = title;
+    els.placeholderText.textContent = text;
+    els.placeholder.hidden = false;
+    els.frame.hidden = true;
+    els.stageError.classList.remove('is-visible');
+    els.mask.classList.remove('is-visible');
+    setBarState(null);
+  }
+
+  function showStageError(message) {
+    els.stageErrorText.textContent = message;
+    els.stageError.classList.add('is-visible');
+    els.placeholder.hidden = true;
+    els.frame.hidden = true;
+    els.mask.classList.remove('is-visible');
+    setBarState('error');
+  }
+
+  function updateHash() {
+    const next = activeIndex === null ? '' : `#/entry/${activeIndex}`;
+    if (window.location.hash !== next) {
+      history.replaceState(null, '', next || window.location.pathname + window.location.search);
+    }
+  }
+
+  function selectEntry(index, { updateLocation = true } = {}) {
+    const entry = entries[index];
+    if (!entry) return;
+    activeIndex = index;
+
+    for (const tab of els.tabs.children) {
+      const isActive = Number(tab.dataset.index) === index;
+      tab.classList.toggle('is-active', isActive);
+      if (isActive) tab.scrollIntoView({ block: 'nearest' });
+    }
+
+    els.currentName.textContent = entry.title || entry.displayPath;
+    els.currentSrc.textContent = entry.displayPath;
+    els.currentSrc.title = entry.displayPath;
+
+    if (updateLocation) updateHash();
+
+    if (entry.error || !entry.src) {
+      els.openRaw.setAttribute('aria-disabled', 'true');
+      els.openRaw.href = '#';
+      els.refreshFrame.setAttribute('aria-disabled', 'true');
+      showStageError(entry.error || '该条目不可用');
+      return;
+    }
+
+    els.openRaw.removeAttribute('aria-disabled');
+    els.openRaw.href = entry.src;
+    els.refreshFrame.removeAttribute('aria-disabled');
+
+    setBarState(null);
+    els.stageError.classList.remove('is-visible');
+    els.placeholder.hidden = true;
+    els.frame.hidden = false;
+    els.mask.classList.add('is-visible');
+    els.frame.src = entry.src;
+  }
+
+  function renderTabs() {
+    els.tabs.replaceChildren();
+    entries.forEach((entry, index) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'tab' + (entry.error ? ' is-error' : '');
+      button.dataset.index = String(index);
+      button.title = entry.error
+        ? `${entry.displayPath}\n${entry.error}`
+        : `${entry.title}\n${entry.displayPath}`;
+      button.innerHTML = `
+        <span class="tab__index">${String(index + 1).padStart(2, '0')}</span>
+        <span class="tab__body">
+          <span class="tab__title"></span>
+          <span class="tab__path"></span>
+        </span>
+        <span class="tab__state"></span>`;
+      button.querySelector('.tab__title').textContent = entry.title || entry.displayPath;
+      button.querySelector('.tab__path').textContent = entry.displayPath;
+      button.querySelector('.tab__state').textContent = entry.error ? '!' : '';
+      button.addEventListener('click', () => selectEntry(index));
+      els.tabs.append(button);
+    });
+  }
+
+  function applyHashOnLoad() {
+    const match = window.location.hash.match(/^#\/entry\/(\d+)$/);
+    if (match && entries[Number(match[1])]) {
+      selectEntry(Number(match[1]), { updateLocation: false });
+    } else {
+      const firstUsable = entries.findIndex((entry) => entry.src);
+      if (firstUsable >= 0) selectEntry(firstUsable, { updateLocation: false });
+    }
+  }
+
+  async function load({ keepSelection = false } = {}) {
+    const previousPath = keepSelection && activeIndex !== null ? entries[activeIndex]?.displayPath : null;
+    els.reload.classList.add('spinning');
+    try {
+      const response = await fetch('/api/entries', { cache: 'no-store' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+
+      entries = data.entries || [];
+      renderTabs();
+      const usable = entries.filter((entry) => entry.src).length;
+      els.count.textContent = entries.length
+        ? `${entries.length} 个条目 · ${usable} 个可用`
+        : '列表为空';
+
+      if (previousPath) {
+        const index = entries.findIndex((entry) => entry.displayPath === previousPath);
+        if (index >= 0) {
+          selectEntry(index, { updateLocation: false });
+          return;
+        }
+      }
+      activeIndex = null;
+      applyHashOnLoad();
+    } catch (error) {
+      entries = [];
+      els.tabs.replaceChildren();
+      els.count.textContent = '读取失败';
+      const item = document.createElement('div');
+      item.className = 'placeholder';
+      item.style.height = 'auto';
+      item.style.padding = '24px 16px';
+      item.innerHTML = '<p class="err"></p>';
+      item.querySelector('.err').textContent = `读取 config.json 失败：${error.message}`;
+      els.tabs.append(item);
+      showPlaceholder('列表不可用', `无法读取配置：${error.message}`);
+    } finally {
+      els.reload.classList.remove('spinning');
+    }
+  }
+
+  els.reload.addEventListener('click', () => load({ keepSelection: true }));
+
+  els.refreshFrame.addEventListener('click', () => {
+    if (activeIndex === null) return;
+    const entry = entries[activeIndex];
+    if (!entry?.src) return;
+    els.mask.classList.add('is-visible');
+    els.frame.src = entry.src;
+  });
+
+  els.frame.addEventListener('load', () => {
+    els.mask.classList.remove('is-visible');
+    if (!els.frame.hidden) setBarState('ok');
+  });
+
+  window.addEventListener('hashchange', () => {
+    const match = window.location.hash.match(/^#\/entry\/(\d+)$/);
+    if (match && entries[Number(match[1])] && Number(match[1]) !== activeIndex) {
+      selectEntry(Number(match[1]), { updateLocation: false });
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.target instanceof HTMLElement && /^(INPUT|TEXTAREA)$/.test(event.target.tagName)) return;
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    if (!entries.length) return;
+    event.preventDefault();
+    const direction = event.key === 'ArrowDown' ? 1 : -1;
+    let next = activeIndex === null ? 0 : activeIndex + direction;
+    while (next >= 0 && next < entries.length && !entries[next].src) next += direction;
+    if (next >= 0 && next < entries.length) selectEntry(next);
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

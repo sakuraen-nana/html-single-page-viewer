@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wavelet API · 参考文档</title>
+<style>
+  :root{
+    --bg: #FBFBF9;
+    --panel: #FFFFFF;
+    --ink: #1D1F24;
+    --muted: #666C76;
+    --faint: #8B9099;
+    --line: #E6E6E1;
+    --accent: #3556D6;
+    --accent-soft: #EEF2FF;
+    --code-bg: #16181D;
+    --code-text: #E6E8EC;
+    --green: #1E7F4F;
+    --amber: #9A6A14;
+    --red: #B4483C;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Consolas, "Liberation Mono", monospace;
+  }
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  html{ scroll-behavior: smooth; }
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  .topbar{
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; gap: 18px;
+    height: 58px;
+    padding: 0 clamp(18px, 4vw, 40px);
+    background: rgba(255,255,255,.9);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand{ display: flex; align-items: center; gap: 9px; font-weight: 700; letter-spacing: -.01em; }
+  .mark{
+    width: 26px; height: 26px;
+    display: grid; place-items: center;
+    border-radius: 7px;
+    background: linear-gradient(135deg, #1D2A63, #3556D6);
+    color: #fff; font: 700 13px var(--mono);
+  }
+  .badge{
+    font: 10px var(--mono);
+    color: var(--accent);
+    border: 1px solid #C7D2FE;
+    background: var(--accent-soft);
+    border-radius: 999px;
+    padding: 2px 8px;
+    letter-spacing: .04em;
+  }
+  .search{
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    width: min(320px, 38vw);
+    padding: 7px 11px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #fff;
+    color: var(--faint);
+    font-size: 12px;
+  }
+  .search kbd{
+    margin-left: auto;
+    font: 10px var(--mono);
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    padding: 0 4px;
+    color: var(--faint);
+  }
+  .toplink{
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .toplink:hover{ color: var(--accent); }
+
+  .layout{
+    display: grid;
+    grid-template-columns: 208px minmax(0, 820px);
+    gap: clamp(28px, 5vw, 64px);
+    justify-content: center;
+    padding: 42px clamp(18px, 4vw, 40px) 80px;
+  }
+  .toc{
+    position: sticky; top: 88px;
+    align-self: start;
+    font-size: 12px;
+  }
+  .toc-title{
+    font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 10px;
+  }
+  .toc a{
+    display: block;
+    padding: 5px 10px;
+    margin-left: -10px;
+    border-left: 2px solid transparent;
+    color: var(--muted);
+    text-decoration: none;
+    border-radius: 0 5px 5px 0;
+    transition: color .12s, border-color .12s, background .12s;
+  }
+  .toc a:hover{ color: var(--ink); background: #F4F4F0; }
+  .toc a.on{ color: var(--accent); border-left-color: var(--accent); background: var(--accent-soft); }
+  .toc .sep{ height: 1px; background: var(--line); margin: 12px 0; }
+
+  .content{ min-width: 0; }
+  .kicker{ font-size: 10.5px; letter-spacing: .2em; text-transform: uppercase; color: var(--accent); font-weight: 600; }
+  h1{
+    margin: 10px 0 12px;
+    font-size: clamp(30px, 4.5vw, 42px);
+    letter-spacing: -.025em;
+    line-height: 1.2;
+  }
+  .lede{ font-size: 16px; color: #4B5059; max-width: 640px; line-height: 1.8; }
+  .meta{
+    display: flex; flex-wrap: wrap; gap: 8px 18px;
+    margin: 22px 0 8px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line);
+    font-size: 11.5px; color: var(--faint);
+  }
+  .meta span::before{ content: ""; display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: #C7CAC3; margin-right: 7px; vertical-align: 2px; }
+  h2{
+    margin: 44px 0 12px;
+    padding-top: 6px;
+    font-size: 22px;
+    letter-spacing: -.01em;
+    scroll-margin-top: 80px;
+  }
+  h3{
+    margin: 26px 0 9px;
+    font-size: 15px;
+    scroll-margin-top: 80px;
+  }
+  p{ margin-bottom: 13px; color: #3A3E45; }
+  .content ul{ margin: 0 0 16px 20px; color: #3A3E45; }
+  .content li{ margin-bottom: 5px; }
+  a{ color: var(--accent); }
+  code.inline{
+    font: 12px var(--mono);
+    background: #F1F2EE;
+    border: 1px solid #E3E4DF;
+    border-radius: 4px;
+    padding: 1px 5px;
+    color: #33414F;
+  }
+  .note{
+    margin: 18px 0;
+    padding: 12px 15px;
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 8px 8px 0;
+    font-size: 12.5px;
+    color: #3B4664;
+    line-height: 1.75;
+  }
+  .note.warn{ border-left-color: #D9A03B; background: #FDF6E7; color: #6B501F; }
+  .note b{ font-weight: 600; }
+
+  .code{
+    position: relative;
+    margin: 14px 0 20px;
+    border-radius: 10px;
+    background: var(--code-bg);
+    overflow: hidden;
+  }
+  .code pre{
+    margin: 0;
+    padding: 17px 18px;
+    overflow-x: auto;
+    font: 12.5px/1.75 var(--mono);
+    color: var(--code-text);
+  }
+  .copy{
+    position: absolute; top: 9px; right: 9px;
+    padding: 4px 9px;
+    border: 1px solid #34373F;
+    border-radius: 5px;
+    background: #20232A;
+    color: #AEB4BD;
+    font: 10.5px var(--mono);
+    cursor: pointer;
+  }
+  .copy:hover{ color: #fff; border-color: #4A4E58; }
+  .tok-key{ color: #8AB4F8; }
+  .tok-str{ color: #A5D6A7; }
+  .tok-num{ color: #F2B574; }
+  .tok-com{ color: #6F7681; }
+  .tok-fn{ color: #C7A6F7; }
+
+  .method{
+    display: inline-block;
+    min-width: 46px;
+    text-align: center;
+    font: 700 10px var(--mono);
+    letter-spacing: .04em;
+    border-radius: 4px;
+    padding: 1px 6px;
+    background: #E7F4EC;
+    color: var(--green);
+  }
+  .method.get{ background: #E8F0FE; color: #2456B3; }
+  .method.post{ background: #E7F4EC; color: var(--green); }
+  .method.del{ background: #FBECE9; color: var(--red); }
+
+  table{
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 22px;
+    font-size: 12.5px;
+  }
+  th{
+    text-align: left;
+    padding: 8px 10px;
+    background: #F5F5F1;
+    border-bottom: 1px solid var(--line);
+    font-size: 10.5px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  td{
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+    color: #3A3E45;
+  }
+  td code{
+    font: 11.5px var(--mono);
+    color: #2C3540;
+    background: #F4F4F0;
+    border-radius: 3px;
+    padding: 1px 4px;
+  }
+  .req{ color: var(--red); font-size: 10.5px; }
+  .opt{ color: var(--faint); font-size: 10.5px; }
+
+  .changelog{ list-style: none; margin: 0; padding: 0; }
+  .changelog li{
+    display: grid;
+    grid-template-columns: 96px minmax(0,1fr);
+    gap: 16px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 12.5px;
+  }
+  .changelog time{ font: 11px var(--mono); color: var(--faint); padding-top: 2px; }
+  .changelog b{ font-weight: 600; color: var(--ink); }
+
+  .page-foot{
+    margin-top: 52px; padding-top: 18px;
+    border-top: 1px solid var(--line);
+    display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+    font-size: 11px; color: var(--faint);
+  }
+
+  @media (max-width: 900px){
+    .layout{ grid-template-columns: minmax(0, 1fr); }
+    .toc{ display: none; }
+    .search{ display: none; }
+  }
+  @media (max-width: 560px){
+    body{ font-size: 13.5px; }
+    .changelog li{ grid-template-columns: 1fr; gap: 2px; }
+    .toplink{ display: none; }
+  }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="mark">W</span> Wavelet</div>
+    <span class="badge">API v2</span>
+    <div class="search">搜索文档… <kbd>⌘K</kbd></div>
+    <a class="toplink" href="#">控制台 ↗</a>
+  </header>
+
+  <div class="layout">
+    <aside class="toc" id="toc">
+      <div class="toc-title">本页目录</div>
+      <a href="#overview" class="on">概览</a>
+      <a href="#auth">认证</a>
+      <a href="#endpoints">端点列表</a>
+      <a href="#send">发送消息</a>
+      <a href="#errors">错误码</a>
+      <a href="#limits">速率限制</a>
+      <div class="sep"></div>
+      <a href="#changelog">更新日志</a>
+    </aside>
+
+    <main class="content">
+      <section id="overview">
+        <div class="kicker">Developer Reference</div>
+        <h1>Wavelet API</h1>
+        <p class="lede">一个事务型消息 API：一次调用，把短信、邮件或站内信投递到你的用户。本页覆盖认证、发送、查询与错误处理。</p>
+        <div class="meta">
+          <span>版本 v2.3</span>
+          <span>更新于 2026-11-18</span>
+          <span>阅读约 12 分钟</span>
+          <span>Base URL <code class="inline">https://api.wavelet.dev</code></span>
+        </div>
+        <p>开始之前，请先在控制台创建一个项目并生成 API Key。所有接口均为 HTTPS，返回 JSON。请求体上限为 256 KB。</p>
+        <ul>
+          <li><b>幂等键</b>：24 小时内重复提交同一 <code class="inline">idempotency_key</code> 会返回首次结果。</li>
+          <li><b>模板变量</b>：发送前会做变量完整性校验，缺失时返回 <code class="inline">422</code>。</li>
+          <li><b>投递回调</b>：可通过 Webhook 订阅 <code class="inline">delivered</code> / <code class="inline">failed</code> 事件。</li>
+        </ul>
+      </section>
+
+      <section id="auth">
+        <h2>认证</h2>
+        <p>在请求头中携带 Bearer Token。生产与测试环境的 Key 前缀不同，测试 Key 不会真实发送消息。</p>
+        <div class="code">
+          <button class="copy" type="button">复制</button>
+          <pre><code><span class="tok-com"># 所有请求都需要 Authorization 头</span>
+curl https://api.wavelet.dev/v2/channels \
+  -H <span class="tok-str">"Authorization: Bearer wv_live_4f9c..."</span></code></pre>
+        </div>
+        <div class="note"><b>注意：</b>不要在浏览器前端直接使用生产 Key。请通过你自己的服务端转发请求，避免 Key 泄露。</div>
+      </section>
+
+      <section id="endpoints">
+        <h2>端点列表</h2>
+        <table>
+          <thead>
+            <tr><th style="width:88px">方法</th><th>路径</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="method post">POST</span></td><td><code>/v2/messages</code></td><td>发送一条消息</td></tr>
+            <tr><td><span class="method get">GET</span></td><td><code>/v2/messages/{id}</code></td><td>查询消息投递状态</td></tr>
+            <tr><td><span class="method post">POST</span></td><td><code>/v2/channels</code></td><td>创建或更新消息通道</td></tr>
+            <tr><td><span class="method get">GET</span></td><td><code>/v2/channels/{id}/stats</code></td><td>获取最近 7 日统计</td></tr>
+            <tr><td><span class="method del">DELETE</span></td><td><code>/v2/messages/{id}</code></td><td>撤回尚未投递的消息</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="send">
+        <h2>发送消息</h2>
+        <h3>请求示例</h3>
+        <div class="code">
+          <button class="copy" type="button">复制</button>
+          <pre><code>curl -X POST https://api.wavelet.dev/v2/messages \
+  -H <span class="tok-str">"Authorization: Bearer wv_live_4f9c..."</span> \
+  -H <span class="tok-str">"Content-Type: application/json"</span> \
+  -d <span class="tok-str">'{
+    "to": "+8613800000000",
+    "channel": "sms",
+    "template": "welcome_v3",
+    "vars": { "name": "小明", "code": "839201" },
+    "idempotency_key": "signup-10248"
+  }'</span></code></pre>
+        </div>
+
+        <h3>响应 · 201 Created</h3>
+        <div class="code">
+          <button class="copy" type="button">复制</button>
+          <pre><code>{
+  <span class="tok-key">"id"</span>: <span class="tok-str">"msg_9f2c81a7"</span>,
+  <span class="tok-key">"status"</span>: <span class="tok-str">"queued"</span>,
+  <span class="tok-key">"channel"</span>: <span class="tok-str">"sms"</span>,
+  <span class="tok-key">"to"</span>: <span class="tok-str">"+86138****0000"</span>,
+  <span class="tok-key">"created_at"</span>: <span class="tok-str">"2026-11-21T09:12:40Z"</span>,
+  <span class="tok-key">"estimated_cost"</span>: <span class="tok-num">0.045</span>
+}</code></pre>
+        </div>
+
+        <h3>请求参数</h3>
+        <table>
+          <thead>
+            <tr><th>参数</th><th>类型</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>to</code> <span class="req">必填</span></td><td><code>string</code></td><td>接收方手机号（E.164）或邮箱地址</td></tr>
+            <tr><td><code>channel</code> <span class="req">必填</span></td><td><code>string</code></td><td><code>sms</code> / <code>email</code> / <code>inapp</code></td></tr>
+            <tr><td><code>template</code> <span class="req">必填</span></td><td><code>string</code></td><td>模板 ID，需已在控制台发布</td></tr>
+            <tr><td><code>vars</code> <span class="opt">可选</span></td><td><code>object</code></td><td>模板变量；缺少必填变量时返回 422</td></tr>
+            <tr><td><code>idempotency_key</code> <span class="opt">可选</span></td><td><code>string</code></td><td>幂等键，24 小时内重复请求返回同一结果</td></tr>
+            <tr><td><code>metadata</code> <span class="opt">可选</span></td><td><code>object</code></td><td>自定义元数据，会原样出现在回调中</td></tr>
+          </tbody>
+        </table>
+        <p>消息进入队列后状态为 <code class="inline">queued</code>，随后依次变为 <code class="inline">sent</code>、<code class="inline">delivered</code> 或 <code class="inline">failed</code>。建议通过 Webhook 监听状态变化，而不是轮询。</p>
+      </section>
+
+      <section id="errors">
+        <h2>错误码</h2>
+        <p>所有错误响应都包含 <code class="inline">error.code</code> 与 <code class="inline">error.message</code>。请根据 <code class="inline">code</code> 做程序判断，不要依赖 message 文案。</p>
+        <table>
+          <thead>
+            <tr><th style="width:78px">HTTP</th><th style="width:180px">code</th><th>说明</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>400</td><td><code>invalid_request</code></td><td>请求体不是合法 JSON，或缺少必填参数</td></tr>
+            <tr><td>401</td><td><code>invalid_token</code></td><td>Authorization 头缺失或 Key 无效</td></tr>
+            <tr><td>403</td><td><code>forbidden</code></td><td>当前 Key 无权访问该通道</td></tr>
+            <tr><td>404</td><td><code>not_found</code></td><td>消息或通道不存在</td></tr>
+            <tr><td>409</td><td><code>idempotency_conflict</code></td><td>幂等键已用于不同请求体</td></tr>
+            <tr><td>422</td><td><code>template_vars_missing</code></td><td>模板变量缺失或类型不匹配</td></tr>
+            <tr><td>429</td><td><code>rate_limited</code></td><td>超过速率限制，参考 Retry-After 头</td></tr>
+            <tr><td>500</td><td><code>internal_error</code></td><td>服务端异常，可安全重试（配合幂等键）</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="limits">
+        <h2>速率限制</h2>
+        <p>默认配额为每项目 <b>120 次请求/分钟</b>、<b>10,000 次/天</b>。每个响应都会带上当前剩余额度：</p>
+        <div class="code">
+          <button class="copy" type="button">复制</button>
+          <pre><code>X-RateLimit-Limit: 120
+X-RateLimit-Remaining: 87
+X-RateLimit-Reset: 1763712780</code></pre>
+        </div>
+        <div class="note warn"><b>批量发送：</b>请不要在短时间内并发打满配额。建议将发送任务排队，并使用指数退避处理 429。批量场景可申请更高的企业配额。</div>
+      </section>
+
+      <section id="changelog">
+        <h2>更新日志</h2>
+        <ul class="changelog">
+          <li><time>2026-11-18</time><span><b>v2.3</b> — 新增 <code class="inline">inapp</code> 通道；投递状态增加 <code class="inline">read_at</code> 字段。</span></li>
+          <li><time>2026-09-02</time><span><b>v2.2</b> — 支持 <code class="inline">idempotency_key</code>；错误码统一为小写下划线格式。</span></li>
+          <li><time>2026-06-14</time><span><b>v2.1</b> — 发送前增加模板变量校验，新增 422 错误码。</span></li>
+          <li><time>2026-03-01</time><span><b>v2.0</b> — 全面迁移至 <code class="inline">/v2</code> 路径，旧版 v1 将于 2027 年下线。</span></li>
+        </ul>
+      </section>
+
+      <div class="page-foot">
+        <span>Wavelet API · 自制演示文档，非真实服务</span>
+        <span>遇到问题？<a href="#">提交工单</a></span>
+      </div>
+    </main>
+  </div>
+
+<script>
+  // TOC 高亮
+  const toc = document.getElementById('toc');
+  const links = [...toc.querySelectorAll('a')];
+  const sections = links
+    .map((link) => document.querySelector(link.getAttribute('href')))
+    .filter(Boolean);
+
+  let ticking = false;
+  function updateToc(){
+    ticking = false;
+    const fromTop = window.scrollY + 120;
+    let current = sections[0];
+    for (const section of sections){
+      if (section.offsetTop <= fromTop) current = section;
+    }
+    links.forEach((link) => {
+      link.classList.toggle('on', link.getAttribute('href') === '#' + current.id);
+    });
+  }
+  window.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(updateToc);
+  }, { passive: true });
+  updateToc();
+
+  // 代码复制
+  document.querySelectorAll('.copy').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const code = button.closest('.code').querySelector('code');
+      const text = code.innerText;
+      try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = '已复制';
+      } catch {
+        const range = document.createRange();
+        range.selectNodeContents(code);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        button.textContent = '已选中';
+      }
+      setTimeout(() => { button.textContent = '复制'; }, 1600);
+    });
+  });
+</script>
+</body>
+</html>
