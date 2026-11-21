@@ -323,7 +323,7 @@
     <nav class="tabs" id="tabs" aria-label="页面列表"></nav>
     <div class="sidebar__foot">
       列表来源：<code>config.json</code><br>
-      路径相对于项目根目录
+      路径相对于仓库根目录
     </div>
   </aside>
 
@@ -490,15 +490,71 @@
     }
   }
 
+  function toUrl(displayPath) {
+    return displayPath.split('/').map((segment) => encodeURIComponent(segment)).join('/');
+  }
+
+  function baseName(displayPath) {
+    return displayPath.replace(/\\/g, '/').split('/').filter(Boolean).pop() || displayPath;
+  }
+
+  function readTitle(text) {
+    try {
+      const doc = new DOMParser().parseFromString(text, 'text/html');
+      return (doc.title || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+    } catch {
+      return '';
+    }
+  }
+
+  async function buildEntries() {
+    const response = await fetch('config.json', { cache: 'no-store' });
+    if (!response.ok) throw new Error(`config.json HTTP ${response.status}`);
+    const data = await response.json();
+    const items = Array.isArray(data) ? data : data?.entries;
+    if (!Array.isArray(items)) throw new Error('config.json 顶层应为数组，或包含 entries 数组');
+
+    return Promise.all(items.map(async (item, index) => {
+      const spec = typeof item === 'string' ? { path: item } : (item || {});
+      const displayPath = typeof spec.path === 'string' ? spec.path : '';
+      const base = {
+        index,
+        displayPath,
+        title: typeof spec.title === 'string' ? spec.title : '',
+        src: null,
+        error: null,
+      };
+
+      if (!displayPath.trim()) {
+        return { ...base, error: '路径为空' };
+      }
+      if (/^(https?:)?\/\//i.test(displayPath.trim())) {
+        return { ...base, title: base.title || displayPath, error: '暂不支持 URL，请填写本地文件路径' };
+      }
+
+      const src = toUrl(displayPath);
+      try {
+        const file = await fetch(src, { cache: 'no-store' });
+        if (!file.ok) {
+          return {
+            ...base,
+            title: base.title || baseName(displayPath),
+            error: file.status === 403 ? '这是一个目录，请指向具体的 HTML 文件' : '文件不存在或无法访问',
+          };
+        }
+        const detected = readTitle(await file.text());
+        return { ...base, title: base.title || detected || baseName(displayPath), src };
+      } catch {
+        return { ...base, title: base.title || baseName(displayPath), error: '文件不存在或无法访问' };
+      }
+    }));
+  }
+
   async function load({ keepSelection = false } = {}) {
     const previousPath = keepSelection && activeIndex !== null ? entries[activeIndex]?.displayPath : null;
     els.reload.classList.add('spinning');
     try {
-      const response = await fetch('/api/entries', { cache: 'no-store' });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
-
-      entries = data.entries || [];
+      entries = await buildEntries();
       renderTabs();
       const usable = entries.filter((entry) => entry.src).length;
       els.count.textContent = entries.length

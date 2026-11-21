@@ -1,8 +1,28 @@
 # 单页预览
 
-本地按列表预览 HTML 单页：左侧竖向标签栏，右侧大 iframe。
+按列表预览 HTML 单页：左侧竖向标签栏，右侧大 iframe。纯静态站点，无需构建，运行时也不需要 Node。
 
-## 运行
+## 用 nginx 部署
+
+将仓库 clone 到任意目录，nginx 站点根目录指向仓库根目录：
+
+```nginx
+server {
+    listen 8080;
+    server_name _;
+    root /path/to/html-single-page-viewer;
+    index index.html;
+
+    location / { }
+    location ~ /\. { deny all; }
+}
+```
+
+访问 `http://<host>:8080/` 即可。修改 `config.json` 后点页面左上角刷新按钮生效，无需重启 nginx。
+
+`location ~ /\. { deny all; }` 用于阻止 `.git` 等隐藏文件被直接下载；不在意时可以去掉。
+
+## 本地预览（可选）
 
 ```bash
 node server.js          # 或 npm start
@@ -13,6 +33,8 @@ node server.js          # 或 npm start
 ```bash
 HOST=0.0.0.0 PORT=8080 node server.js
 ```
+
+Node 只用于本地起一个静态文件服务，nginx 部署不需要它。
 
 ## 配置列表
 
@@ -25,16 +47,16 @@ HOST=0.0.0.0 PORT=8080 node server.js
 ]
 ```
 
-- 路径相对本项目根目录，也接受绝对路径。
-- `title` 省略时自动读取页面 `<title>`，读不到则回退到文件名。
-- 支持 URL 是后续规划，当前填写 `http(s)://` 会显示为不可用条目。
+- 路径相对仓库根目录，也可以写以 `/` 开头的站点根路径；只能访问站点目录内的文件。
+- `title` 省略时由浏览器读取页面 `<title>`，读不到则回退到文件名。
+- `https://` 等 URL 条目暂不支持，会显示为不可用。
 - 修改 `config.json` 后点左上角刷新按钮即可重新读取，无需重启服务。文件缺失、目录等无效条目会在左侧标红并给出原因。
 
 ## 预览原理
 
-iframe 内用相对路径引用的 CSS/JS/图片需要正常的 HTTP 服务，`file://` 直接打开做不到，所以用一个零依赖的 Node 服务：`/api/entries` 返回解析后的列表，`/fs/<绝对路径>` 按原 MIME 类型返回文件。
+纯静态页面：浏览器读取 `config.json`，逐个请求列表中的 HTML 并解析 `<title>`，然后把页面地址交给 iframe。页面内用相对路径引用的 CSS/JS/图片由同一个静态站点直接提供，因此不需要 `/api/entries`、`/fs` 之类的动态接口。
 
-只有 `config.json` 中列出的条目本身及其所在目录会被加入允许访问的根目录；其他路径（如 `/etc/passwd`）返回 403。
+首次加载会额外请求列表中的 HTML 以读取标题（当前 16 个示例页合计约 160KB）；点击左侧条目时直接使用 iframe，不会重复读取列表。
 
 ## 示例单页
 
@@ -59,11 +81,11 @@ iframe 内用相对路径引用的 CSS/JS/图片需要正常的 HTTP 服务，`f
 | `15-vue-forge.html` | Vue × shaders：渐变工坊，v-model 实时驱动 MeshGradient |
 | `16-vue-cursor.html` | Vue × shaders：交互海报，光标轨迹 + 坐标读数 + 配色切换 |
 
-后六页使用 [shader-effects-inc/shaders](https://github.com/shader-effects-inc/shaders) 的 React / Vue 组件（WebGPU）。依赖已本地打包在 `assets/showcase/vendor/`（`shaders@4.0.7`、React 19、Vue 3.5），预览时不需要联网。**浏览器需支持 WebGPU**（Chrome / Edge 113+ 等）；不支持时页面会显示降级提示，文字与交互仍可用。
+后六页使用 [shader-effects-inc/shaders](https://github.com/shader-effects-inc/shaders) 的 React / Vue 组件（WebGPU）。依赖已本地打包在 `assets/showcase/vendor/`（`shaders@4.0.7`、React 19、Vue 3.5），预览时不需要联网。**浏览器需支持 WebGPU**（Chrome / Edge 113+ 等），且需通过 `localhost` 或 HTTPS 访问；不支持或非安全上下文时页面会显示降级提示，文字与交互仍可用。
 
 ## 目录
 
-- `server.js`：静态与 API 服务
-- `public/index.html`：界面
+- `index.html`：界面
 - `config.json`：预览列表
 - `assets/showcase/`：16 个示例单页
+- `server.js`：可选的本地静态服务
