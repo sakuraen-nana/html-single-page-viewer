@@ -79,7 +79,7 @@ Node 只用于本地起一个静态文件服务，nginx 部署不需要它。
 | `15-react-synapse.html` | React × shaders：神经脉冲 HUD，高速粒子流与故障扫描 |
 | `16-react-helios.html` | React × shaders：轨道观测站，全息星球与缓慢扫描的轨道环 |
 | `17-vue-lucid.html` | Vue × shaders：流光万花筒，跟随光标的高速镜像与星芒 |
-| `18-vue-reverie.html` | Vue × shaders：雾中梦，2 秒明暗过渡的呼吸光效、浮游光斑、烟雾与柔和渐变 |
+| `18-vue-reverie.html` | Vue × shaders：雾中梦，2 秒明暗过渡的呼吸光效、大小不一的浮游光斑、烟雾与柔和渐变 |
 
 后六页使用 [shader-effects-inc/shaders](https://github.com/shader-effects-inc/shaders) 的 React / Vue 组件（WebGPU）。依赖已本地打包在 `assets/showcase/vendor/`（`shaders@4.0.7`、React 19、Vue 3.5），预览时不需要联网。**浏览器需支持 WebGPU**（Chrome / Edge 113+ 等），且需通过 `localhost` 或 HTTPS 访问；不支持或非安全上下文时页面会显示降级提示，文字与交互仍可用。
 

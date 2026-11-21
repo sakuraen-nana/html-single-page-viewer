@@ -40,7 +40,7 @@
   }
   @keyframes scene-breath{
     0%, 100%{ filter: brightness(.8) contrast(.94) saturate(.9); }
-    50%{ filter: brightness(1.32) contrast(1.16) saturate(1.12); }
+    50%{ filter: brightness(1.36) contrast(1.17) saturate(1.12); }
   }
   .shader{ position: absolute; inset: 0; width: 100%; height: 100%; }
   .mist{ position: absolute; inset: -12%; z-index: 0; pointer-events: none; }
@@ -87,15 +87,23 @@
   }
   @keyframes breath-light{
     0%, 100%{ opacity: .08; transform: scale(.96); }
-    50%{ opacity: .42; transform: scale(1.04); }
+    50%{ opacity: .52; transform: scale(1.06); }
   }
-  .motes{ position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+  .motes{
+    position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden;
+    mix-blend-mode: screen;
+    opacity: .26;
+    animation: motes-breathe 4s ease-in-out infinite;
+    will-change: opacity;
+  }
+  @keyframes motes-breathe{
+    0%, 100%{ opacity: .26; }
+    50%{ opacity: .94; }
+  }
   .motes i{
     position: absolute; display: block; border-radius: 50%;
     background: radial-gradient(circle, rgba(255, 244, 249, .92) 0%, rgba(242, 196, 218, .48) 32%, rgba(156, 140, 255, 0) 72%);
     filter: blur(2px);
-    opacity: .34;
-    mix-blend-mode: screen;
     animation-name: mote-float;
     animation-timing-function: ease-in-out;
     animation-iteration-count: infinite;
@@ -104,18 +112,18 @@
     0%, 100%{ transform: translate3d(0, 7vh, 0) scale(.92); }
     50%{ transform: translate3d(2.4vw, -6vh, 0) scale(1.08); }
   }
-  .motes i:nth-child(1){ width: 38px; height: 38px; left: 8%; top: 18%; animation-duration: 46s; animation-delay: -6s; }
-  .motes i:nth-child(2){ width: 14px; height: 14px; left: 22%; top: 68%; animation-duration: 38s; animation-delay: -18s; }
-  .motes i:nth-child(3){ width: 64px; height: 64px; left: 34%; top: 30%; animation-duration: 58s; animation-delay: -27s; }
-  .motes i:nth-child(4){ width: 22px; height: 22px; left: 46%; top: 78%; animation-duration: 44s; animation-delay: -9s; }
-  .motes i:nth-child(5){ width: 48px; height: 48px; left: 58%; top: 12%; animation-duration: 52s; animation-delay: -33s; }
-  .motes i:nth-child(6){ width: 10px; height: 10px; left: 66%; top: 58%; animation-duration: 36s; animation-delay: -14s; }
-  .motes i:nth-child(7){ width: 30px; height: 30px; left: 78%; top: 24%; animation-duration: 48s; animation-delay: -22s; }
-  .motes i:nth-child(8){ width: 72px; height: 72px; left: 88%; top: 70%; animation-duration: 62s; animation-delay: -41s; }
-  .motes i:nth-child(9){ width: 18px; height: 18px; left: 12%; top: 86%; animation-duration: 40s; animation-delay: -4s; }
-  .motes i:nth-child(10){ width: 26px; height: 26px; left: 40%; top: 8%; animation-duration: 50s; animation-delay: -25s; }
-  .motes i:nth-child(11){ width: 44px; height: 44px; left: 72%; top: 86%; animation-duration: 56s; animation-delay: -12s; }
-  .motes i:nth-child(12){ width: 16px; height: 16px; left: 92%; top: 42%; animation-duration: 42s; animation-delay: -30s; }
+  .motes i:nth-child(1){ width: 56px; height: 56px; left: 8%; top: 18%; animation-duration: 46s; animation-delay: -6s; }
+  .motes i:nth-child(2){ width: 18px; height: 18px; left: 22%; top: 68%; animation-duration: 38s; animation-delay: -18s; }
+  .motes i:nth-child(3){ width: 120px; height: 120px; left: 34%; top: 30%; animation-duration: 58s; animation-delay: -27s; }
+  .motes i:nth-child(4){ width: 32px; height: 32px; left: 46%; top: 78%; animation-duration: 44s; animation-delay: -9s; }
+  .motes i:nth-child(5){ width: 86px; height: 86px; left: 58%; top: 12%; animation-duration: 52s; animation-delay: -33s; }
+  .motes i:nth-child(6){ width: 14px; height: 14px; left: 66%; top: 58%; animation-duration: 36s; animation-delay: -14s; }
+  .motes i:nth-child(7){ width: 160px; height: 160px; left: 78%; top: 24%; animation-duration: 48s; animation-delay: -22s; }
+  .motes i:nth-child(8){ width: 240px; height: 240px; left: 88%; top: 70%; animation-duration: 62s; animation-delay: -41s; }
+  .motes i:nth-child(9){ width: 24px; height: 24px; left: 12%; top: 86%; animation-duration: 40s; animation-delay: -4s; }
+  .motes i:nth-child(10){ width: 42px; height: 42px; left: 40%; top: 8%; animation-duration: 50s; animation-delay: -25s; }
+  .motes i:nth-child(11){ width: 100px; height: 100px; left: 72%; top: 86%; animation-duration: 56s; animation-delay: -12s; }
+  .motes i:nth-child(12){ width: 70px; height: 70px; left: 92%; top: 42%; animation-duration: 42s; animation-delay: -30s; }
   .frame{
     position: absolute; inset: 16px; z-index: 2;
     border: 1px solid rgba(245, 236, 241, .07);
@@ -393,14 +401,14 @@
           :opacity="0.72"
         />
         <floating-particles
-          :count="300"
+          :count="360"
           :speed="0.015"
           particle-color="#FFEAF6"
-          :particle-size="1.6"
+          :particle-size="2.2"
           :softness="0.7"
           :twinkle="0.4"
           :randomness="0.2"
-          :opacity="0.62"
+          :opacity="0.7"
         />
         <light-leak
           :position="{ x: 0.82, y: 0.18 }"
@@ -417,9 +425,9 @@
         />
         <vignette color="#05030C" :radius="0.72" :falloff="0.6" :intensity="0.55" />
         <bokeh-blur
-          :radius="14"
-          :highlight-gain="3.6"
-          :highlight-threshold="0.48"
+          :radius="18"
+          :highlight-gain="4.4"
+          :highlight-threshold="0.44"
           :chromatic-fringe="0.15"
           :opacity="0.9"
         />
