@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SYNAPSE · 神经脉冲</title>
+<style>
+  :root{
+    --ink: #EDF7FF;
+    --muted: #8EA6BA;
+    --faint: #536B80;
+    --line: rgba(120, 220, 255, .17);
+    --accent: #55F7FF;
+    --accent-2: #FF3CAC;
+    --mono: ui-monospace, "SF Mono", Consolas, monospace;
+  }
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  html, body{ height: 100%; }
+  body{
+    background: #02060C;
+    color: var(--ink);
+    font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    overflow: hidden;
+    cursor: crosshair;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page{
+    position: relative; height: 100vh; min-height: 600px; overflow: hidden;
+    background:
+      radial-gradient(75% 100% at 12% 0%, rgba(42, 210, 255, .15), transparent 58%),
+      radial-gradient(65% 90% at 88% 30%, rgba(255, 60, 172, .16), transparent 60%),
+      linear-gradient(155deg, #04101D 0%, #02060C 60%, #0A0616 100%);
+  }
+  .shader{ position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .grid, .scan, .noise{ position: absolute; inset: 0; pointer-events: none; }
+  .grid{
+    background-image:
+      linear-gradient(rgba(90, 230, 255, .055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(90, 230, 255, .055) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(80% 75% at 50% 45%, #000 18%, transparent 100%);
+    -webkit-mask-image: radial-gradient(80% 75% at 50% 45%, #000 18%, transparent 100%);
+  }
+  .scan{
+    background: linear-gradient(180deg, transparent 0%, rgba(85, 247, 255, .05) 48%, rgba(85, 247, 255, .16) 50%, rgba(85, 247, 255, .04) 52%, transparent 100%);
+    height: 30%;
+    animation: scan 5.2s linear infinite;
+    mix-blend-mode: screen;
+  }
+  @keyframes scan{ from{ transform: translateY(-120%); } to{ transform: translateY(520%); } }
+  .noise{
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px);
+    opacity: .35;
+  }
+  .vignette{
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(100% 85% at 50% 45%, transparent 40%, rgba(2, 6, 12, .55) 100%),
+      linear-gradient(0deg, rgba(2, 6, 12, .82), transparent 38%);
+  }
+
+  .ui{
+    position: absolute; inset: 0; z-index: 3;
+    display: flex; flex-direction: column;
+    padding: 22px clamp(20px, 3.4vw, 52px) 18px;
+    pointer-events: none;
+  }
+  .ui a, .ui button, .ui input{ pointer-events: auto; }
+  .nav{ display: flex; align-items: center; gap: 26px; }
+  .brand{ font: 700 13px var(--mono); letter-spacing: .26em; }
+  .brand b{ color: var(--accent); font-weight: 700; }
+  .nav nav{ display: flex; gap: 20px; margin-left: 12px; }
+  .nav a{ color: var(--muted); font-size: 11.5px; text-decoration: none; letter-spacing: .06em; }
+  .nav a:hover{ color: var(--ink); }
+  .nav .feed{
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    font: 9.5px var(--mono); letter-spacing: .14em; color: var(--accent);
+  }
+  .pulse-dot{
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 1.4s infinite;
+  }
+  @keyframes pulse{ 50%{ opacity: .2; transform: scale(.6); } }
+
+  .main{
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+    align-items: center;
+    gap: 40px;
+    padding: 16px 0;
+  }
+  .hero{ max-width: 720px; }
+  .eyebrow{
+    display: flex; align-items: center; gap: 12px;
+    font: 10px var(--mono); letter-spacing: .22em; color: var(--accent);
+  }
+  .eyebrow::before{ content: ""; width: 30px; height: 1px; background: var(--accent); }
+  h1{
+    margin: 20px 0 18px;
+    font-size: clamp(58px, 9vw, 132px);
+    line-height: .86;
+    letter-spacing: -.055em;
+    font-weight: 750;
+  }
+  h1 span{
+    display: inline-block;
+    color: transparent;
+    -webkit-text-stroke: 1.2px rgba(237, 247, 255, .72);
+  }
+  h1 .glow{
+    color: var(--accent);
+    -webkit-text-stroke: 0;
+    text-shadow: 0 0 34px rgba(85, 247, 255, .45);
+  }
+  .lede{
+    max-width: 450px;
+    color: #AFC2D2;
+    font-size: 13px;
+    line-height: 1.9;
+  }
+  .actions{ display: flex; align-items: center; gap: 12px; margin-top: 26px; flex-wrap: wrap; }
+  .btn{
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 16px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(3, 10, 18, .4);
+    color: var(--ink);
+    font: inherit; font-size: 11.5px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: .15s;
+  }
+  .btn:hover{ border-color: var(--accent); color: var(--accent); }
+  .btn.primary{ background: var(--accent); border-color: var(--accent); color: #031014; font-weight: 600; }
+  .btn.primary:hover{ filter: brightness(1.08); color: #031014; }
+  .palette{
+    display: flex; align-items: center; gap: 7px;
+    font: 9.5px var(--mono); color: var(--faint); letter-spacing: .1em;
+  }
+  .palette i{ width: 17px; height: 17px; border-radius: 50%; border: 1px solid rgba(255,255,255,.28); }
+
+  .telemetry{
+    justify-self: end;
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: rgba(4, 11, 20, .52);
+    backdrop-filter: blur(14px) saturate(130%);
+    -webkit-backdrop-filter: blur(14px) saturate(130%);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, .35);
+    overflow: hidden;
+  }
+  .telemetry__head{
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 13px 15px;
+    border-bottom: 1px solid var(--line);
+    font: 9.5px var(--mono); letter-spacing: .14em; color: var(--faint);
+  }
+  .telemetry__head b{ color: var(--accent); font-weight: 500; letter-spacing: .08em; }
+  .telemetry__body{ padding: 15px; }
+  .big{
+    display: flex; align-items: baseline; gap: 9px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid rgba(120, 220, 255, .1);
+  }
+  .big b{
+    font: 600 38px/1 var(--mono);
+    letter-spacing: -.04em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .big span{ font: 9.5px var(--mono); color: var(--faint); letter-spacing: .1em; }
+
+  .spark{ display: block; width: 100%; height: 68px; margin: 12px 0 4px; }
+  .spark path{ fill: none; stroke: var(--accent); stroke-width: 1.6; filter: drop-shadow(0 0 5px rgba(85,247,255,.55)); }
+  .spark .area{ fill: url(#sparkFill); stroke: none; }
+
+  .rows{ display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+  .row{
+    display: flex; justify-content: space-between; gap: 12px;
+    font-size: 11px; color: var(--muted);
+    padding-bottom: 7px;
+    border-bottom: 1px solid rgba(120, 220, 255, .07);
+  }
+  .row:last-child{ border-bottom: 0; padding-bottom: 0; }
+  .row b{ font: 10.5px var(--mono); color: var(--ink); font-weight: 400; font-variant-numeric: tabular-nums; }
+  .row b.ok{ color: var(--accent); }
+
+  .bars{ display: flex; align-items: flex-end; gap: 3px; height: 34px; margin-top: 14px; }
+  .bars i{
+    flex: 1;
+    min-width: 2px;
+    background: linear-gradient(180deg, var(--accent), rgba(85, 247, 255, .12));
+    border-radius: 1px;
+    transform-origin: bottom;
+    animation: bar 1.6s ease-in-out infinite;
+  }
+  @keyframes bar{ 50%{ transform: scaleY(.32); opacity: .55; } }
+
+  .foot{
+    display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+    padding-top: 13px;
+    border-top: 1px solid var(--line);
+    font: 9.5px var(--mono); letter-spacing: .12em; color: var(--faint);
+  }
+  .ticker{
+    flex: 1;
+    min-width: 220px;
+    overflow: hidden;
+    white-space: nowrap;
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+  .ticker span{ display: inline-block; padding-left: 100%; animation: ticker 18s linear infinite; color: var(--muted); }
+  @keyframes ticker{ to{ transform: translateX(-100%); } }
+  .foot .sig{ color: var(--accent); }
+
+  .reticle{
+    position: fixed; left: 0; top: 0; z-index: 4;
+    width: 54px; height: 54px;
+    margin: -27px 0 0 -27px;
+    border: 1px solid rgba(85, 247, 255, .5);
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .reticle::before, .reticle::after{
+    content: ""; position: absolute; background: rgba(85, 247, 255, .7);
+  }
+  .reticle::before{ left: 50%; top: -8px; width: 1px; height: 70px; }
+  .reticle::after{ top: 50%; left: -8px; height: 1px; width: 70px; }
+  .reticle span{
+    position: absolute; left: 62px; top: 42px;
+    font: 9px var(--mono); color: var(--accent); letter-spacing: .1em; white-space: nowrap;
+  }
+
+  .gpu-warning{
+    margin-top: 16px;
+    max-width: 440px;
+    padding: 8px 12px;
+    border-left: 2px solid #E3A04A;
+    background: rgba(0,0,0,.32);
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: #D8C7AB;
+  }
+  @media (max-width: 980px){
+    .main{ grid-template-columns: 1fr; }
+    .telemetry{ display: none; }
+    .hero{ max-width: 86vw; }
+  }
+  @media (max-width: 680px){
+    .nav nav{ display: none; }
+    h1{ font-size: 58px; }
+    .foot .hide-sm{ display: none; }
+    .reticle{ display: none; }
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="./vendor/react-runtime.js"></script>
+  <script>
+    const { React, createRoot, htm, Shaders } = window.HSPV_REACT;
+    const { Shader, LinearGradient, MeshGradient, ParticleFlow, Glitch, FilmGrain } = Shaders;
+    const html = htm.bind(React.createElement);
+    const { useState, useEffect, useRef } = React;
+
+    const PALETTES = [
+      { name: "ION", a: "#55F7FF", b: "#FF3CAC", accent: "#55F7FF", accent2: "#FF3CAC" },
+      { name: "ACID", a: "#D8FF4F", b: "#3D7BFF", accent: "#D8FF4F", accent2: "#3D7BFF" },
+      { name: "REDSHIFT", a: "#FF6B5E", b: "#7C5CFF", accent: "#FF6B5E", accent2: "#7C5CFF" },
+    ];
+
+    function sparkPath(values, width, height){
+      const max = Math.max(...values), min = Math.min(...values);
+      const range = max - min || 1;
+      return values.map((value, index) => {
+        const x = (index / (values.length - 1)) * width;
+        const y = height - ((value - min) / range) * (height - 8) - 4;
+        return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+    }
+
+    function App(){
+      const [paletteIndex, setPaletteIndex] = useState(0);
+      const [gpuError, setGpuError] = useState('');
+      const [metrics, setMetrics] = useState({ synapses: 18432, latency: 12.4, load: 71, coherence: 96.2 });
+      const [spark, setSpark] = useState(() => Array.from({ length: 28 }, () => 30 + Math.random() * 70));
+      const reticleRef = useRef(null);
+      const palette = PALETTES[paletteIndex];
+
+      useEffect(() => {
+        const timer = setInterval(() => {
+          setMetrics((prev) => ({
+            synapses: prev.synapses + Math.round(Math.random() * 220 - 70),
+            latency: Number((9 + Math.random() * 9).toFixed(1)),
+            load: Math.round(58 + Math.random() * 37),
+            coherence: Number((91 + Math.random() * 8.5).toFixed(1)),
+          }));
+          setSpark((prev) => [...prev.slice(1), 20 + Math.random() * 80]);
+        }, 900);
+        return () => clearInterval(timer);
+      }, []);
+
+      function track(event){
+        if (!reticleRef.current) return;
+        reticleRef.current.style.opacity = '.55';
+        reticleRef.current.style.transform = `translate(${event.clientX}px, ${event.clientY}px)`;
+        const label = reticleRef.current.querySelector('span');
+        if (label) {
+          label.textContent = `X ${String(Math.round(event.clientX)).padStart(4, '0')} / Y ${String(Math.round(event.clientY)).padStart(4, '0')}`;
+        }
+      }
+
+      function cycle(event){
+        if (event.target.closest('a, button, input, label')) return;
+        setPaletteIndex((paletteIndex + 1) % PALETTES.length);
+      }
+
+      const bars = [0.4, 0.72, 0.55, 0.9, 0.62, 0.84, 0.48, 0.76, 0.58, 0.92, 0.66, 0.8];
+
+      return html`<div
+        class="page"
+        style=${{ '--accent': palette.accent, '--accent-2': palette.accent2 }}
+        onPointerMove=${track}
+        onClick=${cycle}
+      >
+        <div class="shader-wrap">
+          <${Shader} className="shader" disableTelemetry=${true} onUnavailable=${setGpuError}>
+            <${LinearGradient} colorA="#02060C" colorB="#07172A" angle=${125} />
+            <${MeshGradient}
+              colorA="#020A14"
+              colorB="#0B2440"
+              count=${6}
+              smoothness=${2.1}
+              variation=${0.55}
+              swirl=${0.62}
+              drift=${0.75}
+              speed=${1.5}
+            />
+            <${ParticleFlow}
+              colorA=${palette.a}
+              colorB=${palette.b}
+              shape="streak"
+              count=${10000}
+              size=${1.15}
+              speed=${2.4}
+              force=${1.5}
+              swirl=${44}
+              momentum=${0.55}
+              trails=${0.32}
+              ambient=${0.08}
+            />
+            <${Glitch}
+              intensity=${0.12}
+              speed=${2.2}
+              rgbShift=${3}
+              blockDensity=${26}
+              scanlineIntensity=${0.12}
+              blendMode="screen"
+              opacity=${0.38}
+            />
+            <${FilmGrain} strength=${0.13} animated=${true} />
+          <//>
+        </div>
+        <div class="grid"></div>
+        <div class="scan"></div>
+        <div class="noise"></div>
+        <div class="vignette"></div>
+
+        <div class="ui">
+          <header class="nav">
+            <div class="brand">SYNAPSE<b>.</b></div>
+            <nav>
+              <a href="#">神经场</a>
+              <a href="#">信号</a>
+              <a href="#">档案</a>
+            </nav>
+            <span class="feed"><i class="pulse-dot"></i> LIVE FEED 0x7F</span>
+          </header>
+
+          <main class="main">
+            <section class="hero">
+              <div class="eyebrow">SYNAPTIC FIELD / EXPERIMENT 07</div>
+              <h1>神经<span class="glow">脉冲</span><br /><span>穿过你。</span></h1>
+              <p class="lede">一万条信号在暗处同时放电。它们没有语言，只有方向、强度和一点点偶然的共振。移动光标，或者点击画面，换一段频段。</p>
+              <div class="actions">
+                <button class="btn primary" type="button" onClick=${() => setPaletteIndex((paletteIndex + 1) % PALETTES.length)}>切换频段 <span aria-hidden="true">↗</span></button>
+                <span class="palette">
+                  <i style=${{ background: palette.a }}></i>
+                  <i style=${{ background: palette.b }}></i>
+                  <span>${palette.name} / 0${paletteIndex + 1}</span>
+                </span>
+              </div>
+              ${gpuError ? html`<div class="gpu-warning">当前浏览器未启用 WebGPU（${gpuError || 'unknown'}），神经脉冲场无法实时渲染。若通过局域网 IP 的 http:// 打开，浏览器会禁用 WebGPU；请改用 localhost / 127.0.0.1 或 HTTPS。</div>` : null}
+            </section>
+
+            <aside class="telemetry">
+              <div class="telemetry__head"><span>ACTIVITY</span><b>REAL-TIME</b></div>
+              <div class="telemetry__body">
+                <div class="big"><b>${metrics.synapses.toLocaleString('en-US')}</b><span>ACTIVE SYNAPSES</span></div>
+                <svg class="spark" viewBox="0 0 300 68" preserveAspectRatio="none" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color=${palette.a} stop-opacity=".28" />
+                      <stop offset="100%" stop-color=${palette.a} stop-opacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <path class="area" d=${sparkPath(spark, 300, 68) + ' L300,68 L0,68 Z'} />
+                  <path d=${sparkPath(spark, 300, 68)} />
+                </svg>
+                <div class="rows">
+                  <div class="row"><span>延迟 latency</span><b>${metrics.latency.toFixed(1)} ms</b></div>
+                  <div class="row"><span>负载 load</span><b class="ok">${metrics.load}%</b></div>
+                  <div class="row"><span>相干性 coherence</span><b>${metrics.coherence.toFixed(1)}%</b></div>
+                  <div class="row"><span>频段 band</span><b>${palette.name}</b></div>
+                </div>
+                <div class="bars">
+                  ${bars.map((height, index) => html`<i style=${{ height: `${height * 100}%`, animationDelay: `${(index % 5) * -0.23}s` }}></i>`)}
+                </div>
+              </div>
+            </aside>
+          </main>
+
+          <footer class="foot">
+            <span><span class="pulse-dot" style=${{ display: 'inline-block', marginRight: '7px' }}></span>NEURAL LINK ESTABLISHED</span>
+            <span class="hide-sm">SIGNAL ${palette.name} · 60 FPS TARGET</span>
+            <div class="ticker"><span>INCOMING // 0x7F3A · ${metrics.synapses.toLocaleString('en-US')} SYNAPSES · LATENCY ${metrics.latency.toFixed(1)} MS · COHERENCE ${metrics.coherence.toFixed(1)}% · ${palette.name} BAND · INCOMING //</span></div>
+            <span class="sig">WEBGPU</span>
+          </footer>
+        </div>
+
+        <div class="reticle" ref=${reticleRef}><span>X 0000 / Y 0000</span></div>
+      </div>`;
+    }
+
+    createRoot(document.getElementById('root')).render(html`<${App} />`);
+  </script>
+</body>
+</html>

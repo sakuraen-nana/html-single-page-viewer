@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HELIOS · 轨道观测站</title>
+<style>
+  :root{
+    --ink: #E7F1F7;
+    --muted: #8FA6B5;
+    --faint: #587082;
+    --line: rgba(130, 220, 255, .16);
+    --accent: #7FE7FF;
+    --warm: #FFC66D;
+    --mono: ui-monospace, "SF Mono", Consolas, monospace;
+    --serif: "Noto Serif CJK SC", "Songti SC", Georgia, serif;
+  }
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  html, body{ height: 100%; }
+  body{
+    background: #02060C;
+    color: var(--ink);
+    font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page{
+    position: relative; height: 100vh; min-height: 620px; overflow: hidden;
+    background:
+      radial-gradient(55% 80% at 66% 46%, rgba(40, 160, 210, .16), transparent 62%),
+      radial-gradient(70% 90% at 10% 0%, rgba(26, 72, 110, .2), transparent 60%),
+      linear-gradient(150deg, #05101A 0%, #02060C 62%, #040A12 100%);
+  }
+  .shader{ position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  .grain, .scanlines, .vignette{ position: absolute; inset: 0; pointer-events: none; }
+  .scanlines{
+    background: repeating-linear-gradient(0deg, rgba(120, 220, 255, .035) 0 1px, transparent 1px 4px);
+    opacity: .7;
+  }
+  .vignette{
+    background:
+      radial-gradient(95% 80% at 50% 45%, transparent 42%, rgba(2, 6, 12, .6) 100%),
+      linear-gradient(0deg, rgba(2, 6, 12, .84), transparent 40%);
+  }
+
+  /* 中央轨道装置 */
+  .orbit-stage{
+    position: absolute; left: 66%; top: 46%;
+    width: min(52vw, 620px); aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    opacity: .9;
+  }
+  .orbit{
+    position: absolute; border-radius: 50%;
+    border: 1px solid rgba(127, 231, 255, .18);
+  }
+  .orbit.r1{ inset: 0; border-style: dashed; animation: spin 110s linear infinite; }
+  .orbit.r2{ inset: 11%; border-color: rgba(127, 231, 255, .12); animation: spin 72s linear infinite reverse; }
+  .orbit.r3{ inset: 25%; border-color: rgba(255, 198, 109, .14); animation: spin 48s linear infinite; }
+  .orbit.r4{ inset: 38%; border-style: dotted; border-color: rgba(127, 231, 255, .24); animation: spin 34s linear infinite reverse; }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .orbit-stage::before, .orbit-stage::after{
+    content: ""; position: absolute; background: rgba(127, 231, 255, .12);
+  }
+  .orbit-stage::before{ left: 50%; top: -4%; width: 1px; height: 108%; }
+  .orbit-stage::after{ top: 50%; left: -4%; height: 1px; width: 108%; }
+
+  .radar{
+    position: absolute; inset: 11%;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, rgba(127, 231, 255, .14), rgba(127, 231, 255, .015) 26deg, transparent 58deg);
+    mask-image: radial-gradient(circle, transparent 28%, #000 29%, #000 100%);
+    -webkit-mask-image: radial-gradient(circle, transparent 28%, #000 29%, #000 100%);
+    animation: spin 26s linear infinite;
+  }
+  .orbit-tick{
+    position: absolute; left: 50%; top: 50%;
+    width: 1px; height: 50%;
+    transform-origin: top center;
+    background: linear-gradient(0deg, transparent 82%, rgba(255, 198, 109, .8));
+  }
+  .orbit-tick.t1{ transform: translateX(-.5px) rotate(37deg); }
+  .orbit-tick.t2{ transform: translateX(-.5px) rotate(143deg); }
+  .orbit-tick.t3{ transform: translateX(-.5px) rotate(251deg); }
+
+  .orbit-label{
+    position: absolute; z-index: 2;
+    font: 9px var(--mono); letter-spacing: .13em; color: var(--faint);
+    white-space: nowrap;
+  }
+  .orbit-label b{ display: block; color: var(--accent); font-weight: 400; }
+  .orbit-label.l1{ left: 6%; top: 4%; }
+  .orbit-label.l3{ left: 10%; bottom: 9%; }
+
+  .ui{
+    position: absolute; inset: 0; z-index: 3;
+    display: flex; flex-direction: column;
+    padding: 22px clamp(20px, 3.4vw, 54px) 18px;
+    pointer-events: none;
+  }
+  .ui a, .ui button{ pointer-events: auto; }
+  .nav{ display: flex; align-items: center; gap: 26px; }
+  .brand{ font: 700 13px var(--mono); letter-spacing: .28em; }
+  .brand b{ color: var(--warm); font-weight: 700; }
+  .nav nav{ display: flex; gap: 21px; margin-left: 14px; }
+  .nav a{ color: var(--muted); font-size: 11.5px; text-decoration: none; letter-spacing: .06em; }
+  .nav a:hover{ color: var(--ink); }
+  .nav .status{
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+    font: 9.5px var(--mono); letter-spacing: .13em; color: var(--accent);
+  }
+  .status i{
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    animation: breathe 6s ease-in-out infinite;
+  }
+  @keyframes breathe{ 50%{ opacity: .25; } }
+
+  .main{
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    padding-bottom: 8px;
+  }
+  .hero{ max-width: 640px; }
+  .eyebrow{
+    display: flex; align-items: center; gap: 12px;
+    font: 10px var(--mono); letter-spacing: .22em; color: var(--warm);
+  }
+  .eyebrow::before{ content: ""; width: 30px; height: 1px; background: var(--warm); }
+  h1{
+    margin: 18px 0 14px;
+    font-family: var(--serif);
+    font-size: clamp(54px, 7.4vw, 104px);
+    line-height: .95;
+    font-weight: 400;
+    letter-spacing: .08em;
+    display: flex; align-items: baseline; gap: 18px;
+  }
+  h1 em{
+    font-style: normal;
+    font-size: .17em;
+    letter-spacing: .26em;
+    white-space: nowrap;
+    color: var(--warm);
+    font-family: var(--mono);
+    transform: translateY(-1em);
+  }
+  .lede{
+    max-width: 430px;
+    color: #AFC0CC;
+    font-size: 13px;
+    line-height: 1.95;
+  }
+  .actions{ display: flex; align-items: center; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+  .bands{ display: flex; gap: 6px; }
+  .band{
+    padding: 7px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(3, 10, 16, .42);
+    color: var(--muted);
+    font: inherit; font-size: 10.5px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: .2s;
+  }
+  .band:hover{ border-color: var(--accent); color: var(--ink); }
+  .band.on{ border-color: var(--accent); color: var(--accent); background: rgba(127, 231, 255, .08); }
+  .hint{ font: 9.5px var(--mono); color: var(--faint); letter-spacing: .1em; }
+
+  .telemetry{
+    position: absolute; right: clamp(20px, 3.4vw, 54px); top: 50%;
+    transform: translateY(-42%);
+    width: 220px;
+    display: flex; flex-direction: column; gap: 16px;
+    text-align: right;
+  }
+  .telemetry__tag{
+    font: 9px var(--mono); letter-spacing: .16em; color: var(--faint);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .telemetry__tag b{ color: var(--accent); font-weight: 400; }
+  .data{ display: flex; flex-direction: column; gap: 12px; }
+  .data div{ display: flex; flex-direction: column; gap: 3px; }
+  .data span{ font: 8.5px var(--mono); letter-spacing: .14em; color: var(--faint); }
+  .data b{
+    font: 400 20px/1 var(--mono);
+    letter-spacing: -.02em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .data b em{ font-style: normal; font-size: 10px; color: var(--muted); letter-spacing: .06em; margin-left: 5px; }
+  .data .warm{ color: var(--warm); }
+
+  .foot{
+    display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
+    padding-top: 13px;
+    border-top: 1px solid var(--line);
+    font: 9.5px var(--mono); letter-spacing: .12em; color: var(--faint);
+  }
+  .timeline{
+    flex: 1; min-width: 220px; height: 18px;
+    display: flex; align-items: center; gap: 0;
+    position: relative;
+    background: repeating-linear-gradient(90deg, rgba(127, 231, 255, .22) 0 1px, transparent 1px 28px);
+    mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  }
+  .timeline i{
+    position: absolute; top: 3px; bottom: 3px; left: 0; width: 2px;
+    background: var(--warm); box-shadow: 0 0 14px rgba(255, 198, 109, .8);
+    animation: sweep 18s ease-in-out infinite;
+  }
+  @keyframes sweep{ 0%, 100%{ left: 2%; } 50%{ left: 96%; } }
+  .foot .sig{ color: var(--accent); }
+
+  .gpu-warning{
+    margin-top: 16px;
+    max-width: 430px;
+    padding: 8px 12px;
+    border-left: 2px solid #E3A04A;
+    background: rgba(0,0,0,.32);
+    font-size: 11.5px;
+    line-height: 1.7;
+    color: #D8C7AB;
+  }
+  @media (max-width: 980px){
+    .orbit-stage{ left: 62%; width: 70vw; opacity: .7; }
+    .telemetry{ display: none; }
+    .hero{ max-width: 82vw; }
+  }
+  @media (max-width: 640px){
+    .nav nav{ display: none; }
+    h1{ font-size: 52px; }
+    .orbit-stage{ left: 70%; width: 90vw; }
+    .foot .hide-sm{ display: none; }
+  }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="./vendor/react-runtime.js"></script>
+  <script>
+    const { React, createRoot, htm, Shaders } = window.HSPV_REACT;
+    const { Shader, LinearGradient, MeshGradient, Grid, Hologram, Godrays, FloatingParticles, FilmGrain } = Shaders;
+    const html = htm.bind(React.createElement);
+    const { useState, useEffect } = React;
+
+    const BANDS = [
+      { name: "光学", en: "OPTICAL", color: "#7FE7FF", warm: "#FFC66D" },
+      { name: "射电", en: "RADIO", color: "#FFC66D", warm: "#7FE7FF" },
+      { name: "紫外", en: "ULTRAVIOLET", color: "#B79CFF", warm: "#7FE7FF" },
+    ];
+
+    function App(){
+      const [bandIndex, setBandIndex] = useState(0);
+      const [gpuError, setGpuError] = useState('');
+      const [telemetry, setTelemetry] = useState({ alt: 412.6, signal: -72.4, period: 92.4 });
+      const band = BANDS[bandIndex];
+
+      useEffect(() => {
+        const timer = setInterval(() => {
+          setTelemetry((prev) => ({
+            alt: Number((412 + Math.random() * 1.2 - 0.6).toFixed(1)),
+            signal: Number((-73 + Math.random() * 1.4).toFixed(1)),
+            period: Number((92.3 + Math.random() * 0.2).toFixed(1)),
+          }));
+        }, 2400);
+        return () => clearInterval(timer);
+      }, []);
+
+      return html`<div class="page" style=${{ '--accent': band.color, '--warm': band.warm }}>
+        <${Shader} className="shader" disableTelemetry=${true} onUnavailable=${setGpuError}>
+          <${LinearGradient} colorA="#02060C" colorB="#06141F" angle=${120} />
+          <${MeshGradient}
+            colorA="#020A10"
+            colorB="#0A2230"
+            count=${4}
+            smoothness=${3.2}
+            variation=${0.2}
+            swirl=${0.15}
+            drift=${0.18}
+            speed=${0.25}
+          />
+          <${Grid} color="rgba(110, 220, 255, 0.055)" cells=${16} thickness=${0.5} rotation=${0} />
+          <${Hologram}
+            center=${{ x: 0.66, y: 0.46 }}
+            scale=${1.08}
+            rotation=${0}
+            color=${band.color}
+            brightness=${1.35}
+            fill=${0.18}
+            edgeGlow=${1.1}
+            depthLines=${0.4}
+            depthScale=${26}
+            scanlines=${0.34}
+            scanlineScale=${140}
+            scanlineSpeed=${0.18}
+            sweep=${0.06}
+            flicker=${0.1}
+            distortion=${0.05}
+            grain=${0.35}
+            speed=${0.2}
+            shape=${{ type: 'sphere3D', radius: 0.3 }}
+          />
+          <${Godrays}
+            center=${{ x: 0.66, y: 0.46 }}
+            density=${0.14}
+            intensity=${0.28}
+            rayColor=${band.color}
+            speed=${0.08}
+            blendMode="screen"
+            opacity=${0.65}
+          />
+          <${FloatingParticles}
+            count=${320}
+            speed=${0.03}
+            particleColor="#BEEFFF"
+            particleSize=${0.8}
+            twinkle=${0.25}
+            randomness=${0.2}
+            opacity=${0.55}
+          />
+          <${FilmGrain} strength=${0.12} animated=${false} />
+        <//>
+
+        <div class="scanlines"></div>
+        <div class="vignette"></div>
+
+        <div class="orbit-stage">
+          <div class="orbit r1"></div>
+          <div class="orbit r2"></div>
+          <div class="orbit r3"></div>
+          <div class="orbit r4"></div>
+          <div class="radar"></div>
+          <div class="orbit-tick t1"></div>
+          <div class="orbit-tick t2"></div>
+          <div class="orbit-tick t3"></div>
+          <div class="orbit-label l1">TARGET<b>HELIOS-07</b></div>
+          <div class="orbit-label l3">INC<b>51.6°</b></div>
+        </div>
+
+        <div class="ui">
+          <header class="nav">
+            <div class="brand">HELIOS<b>.</b></div>
+            <nav>
+              <a href="#">观测站</a>
+              <a href="#">星表</a>
+              <a href="#">任务</a>
+            </nav>
+            <span class="status"><i></i> TELEMETRY LINK / 04</span>
+          </header>
+
+          <main class="main">
+            <section class="hero">
+              <div class="eyebrow">ORBITAL OBSERVATORY / 04</div>
+              <h1>HELIOS <em>轨道观测站</em></h1>
+              <p class="lede">在四百公里的高度，光以另一种速度经过。这里记录一颗行星的呼吸、一条轨道的偏移，以及所有缓慢发生的改变。</p>
+              <div class="actions">
+                <div class="bands">
+                  ${BANDS.map((item, index) => html`
+                    <button type="button" class=${'band' + (bandIndex === index ? ' on' : '')} onClick=${() => setBandIndex(index)}>${item.name}</button>
+                  `)}
+                </div>
+                <span class="hint">SWITCH BAND · SLOW SCAN · WEBGPU</span>
+              </div>
+              ${gpuError ? html`<div class="gpu-warning">当前浏览器未启用 WebGPU（${gpuError || 'unknown'}），全息观测画面无法实时渲染。若通过局域网 IP 的 http:// 打开，浏览器会禁用 WebGPU；请改用 localhost / 127.0.0.1 或 HTTPS。</div>` : null}
+            </section>
+          </main>
+
+          <aside class="telemetry">
+            <div class="telemetry__tag">SLOW TELEMETRY / <b>LIVE</b></div>
+            <div class="data">
+              <div><span>ALTITUDE</span><b>${telemetry.alt}<em>KM</em></b></div>
+              <div><span>SIGNAL</span><b class="warm">${telemetry.signal}<em>DB</em></b></div>
+              <div><span>PERIOD</span><b>${telemetry.period}<em>MIN</em></b></div>
+              <div><span>BAND</span><b>${band.en}</b></div>
+              <div><span>DRIFT</span><b>+0.004<em>°/H</em></b></div>
+            </div>
+          </aside>
+
+          <footer class="foot">
+            <span><span class="status" style=${{ marginLeft: 0 }}><i></i> STATION ONLINE</span></span>
+            <span class="hide-sm">HELIOS-07 · ORBITAL PERIOD 92.4 MIN</span>
+            <div class="timeline"><i></i></div>
+            <span class="sig">WEBGPU</span>
+          </footer>
+        </div>
+      </div>`;
+    }
+
+    createRoot(document.getElementById('root')).render(html`<${App} />`);
+  </script>
+</body>
+</html>

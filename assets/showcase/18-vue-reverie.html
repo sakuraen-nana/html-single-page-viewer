@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>REVERIE · 雾中梦</title>
+<style>
+  :root{
+    --ink: #F5ECF1;
+    --muted: #BFAFC8;
+    --faint: #7E708C;
+    --line: rgba(240, 220, 240, .16);
+    --accent: #F2C4DA;
+    --accent-2: #9C8CFF;
+    --serif: "Noto Serif CJK SC", "Songti SC", Georgia, serif;
+    --mono: ui-monospace, "SF Mono", Consolas, monospace;
+  }
+  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  html, body{ height: 100%; }
+  body{
+    background: #090714;
+    color: var(--ink);
+    font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  .app{
+    position: relative; height: 100vh; min-height: 620px; overflow: hidden;
+    background:
+      radial-gradient(65% 80% at 24% 18%, rgba(242, 196, 218, .18), transparent 62%),
+      radial-gradient(55% 70% at 78% 38%, rgba(156, 140, 255, .2), transparent 64%),
+      radial-gradient(70% 80% at 52% 100%, rgba(127, 216, 208, .12), transparent 60%),
+      linear-gradient(155deg, #100C1E 0%, #090714 58%, #120C1A 100%);
+  }
+  .shader{ position: absolute; inset: 0; width: 100%; height: 100%; }
+  .veil{
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(90% 75% at 50% 42%, transparent 36%, rgba(9, 7, 20, .5) 100%),
+      linear-gradient(0deg, rgba(9, 7, 20, .8), transparent 40%);
+  }
+
+  .glow{
+    position: fixed; left: 0; top: 0; z-index: 1;
+    width: 520px; height: 520px;
+    margin: -260px 0 0 -260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(242, 196, 218, .12), rgba(156, 140, 255, .06) 45%, transparent 70%);
+    pointer-events: none;
+    transition: transform 1.4s cubic-bezier(.2, .7, .2, 1);
+    mix-blend-mode: screen;
+  }
+
+  .ui{
+    position: absolute; inset: 0; z-index: 3;
+    display: flex; flex-direction: column;
+    padding: 24px clamp(22px, 4vw, 66px) 20px;
+    pointer-events: none;
+  }
+  .ui a, .ui button{ pointer-events: auto; }
+  .nav{ display: flex; align-items: center; gap: 28px; }
+  .brand{ font: 700 13px var(--mono); letter-spacing: .3em; }
+  .brand b{ color: var(--accent); font-weight: 700; }
+  .nav nav{ display: flex; gap: 22px; margin-left: 14px; }
+  .nav a{ color: var(--muted); font-size: 11.5px; text-decoration: none; letter-spacing: .06em; }
+  .nav a:hover{ color: var(--ink); }
+  .edition{ margin-left: auto; font: 9.5px var(--mono); letter-spacing: .18em; color: var(--faint); }
+
+  .main{
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
+    align-items: center;
+    gap: 44px;
+    padding: 18px 0;
+  }
+  .hero{ max-width: 640px; }
+  .eyebrow{
+    display: flex; align-items: center; gap: 12px;
+    font: 10px var(--mono); letter-spacing: .24em; color: var(--accent);
+  }
+  .eyebrow::before{ content: ""; width: 30px; height: 1px; background: var(--accent); }
+  h1{
+    margin: 24px 0 20px;
+    font-family: var(--serif);
+    font-size: clamp(48px, 6.4vw, 88px);
+    line-height: 1.24;
+    font-weight: 400;
+    letter-spacing: .04em;
+  }
+  h1 em{
+    font-style: normal;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(245, 236, 241, .62);
+  }
+  .lede{
+    max-width: 430px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 2.05;
+  }
+  .actions{ display: flex; align-items: center; gap: 14px; margin-top: 28px; flex-wrap: wrap; }
+  .btn{
+    padding: 10px 18px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(9, 7, 20, .28);
+    color: var(--ink);
+    font: inherit; font-size: 11.5px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: .25s;
+  }
+  .btn:hover{ border-color: var(--accent); color: var(--accent); }
+  .dream-name{
+    font: 9.5px var(--mono); letter-spacing: .16em; color: var(--faint);
+  }
+  .dream-name b{ color: var(--accent); font-weight: 400; }
+
+  .card{
+    position: relative;
+    justify-self: end;
+    width: 100%;
+    padding: 20px 20px 18px;
+    border: 1px solid rgba(245, 236, 241, .18);
+    border-radius: 16px;
+    background: rgba(14, 10, 26, .34);
+    backdrop-filter: blur(16px) saturate(125%);
+    -webkit-backdrop-filter: blur(16px) saturate(125%);
+    box-shadow: 0 30px 90px rgba(0, 0, 0, .32);
+    animation: card-in 2.4s ease-out both;
+  }
+  @keyframes card-in{ from{ opacity: 0; transform: translateY(14px); } to{ opacity: 1; transform: translateY(0); } }
+  .card__top{
+    display: flex; justify-content: space-between; gap: 12px;
+    padding-bottom: 13px;
+    border-bottom: 1px solid var(--line);
+    font: 9px var(--mono); letter-spacing: .16em; color: var(--faint);
+  }
+  .card__top b{ color: var(--accent); font-weight: 400; }
+  .orb{
+    width: 82px; height: 82px;
+    margin: 20px auto 18px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 36% 32%, rgba(255, 240, 248, .9), rgba(242, 196, 218, .55) 28%, rgba(156, 140, 255, .4) 62%, rgba(20, 14, 36, .1) 100%);
+    box-shadow: 0 0 60px rgba(242, 196, 218, .26), inset 0 0 24px rgba(255, 255, 255, .16);
+    animation: float 12s ease-in-out infinite;
+  }
+  @keyframes float{ 50%{ transform: translateY(-7px) scale(1.04); } }
+  .card h2{
+    text-align: center;
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: .22em;
+    text-indent: .22em;
+  }
+  .card .en{
+    margin-top: 5px;
+    text-align: center;
+    font: 8.5px var(--mono);
+    letter-spacing: .2em;
+    color: var(--faint);
+  }
+  .fragments{
+    list-style: none;
+    margin-top: 20px;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .fragments li{
+    display: flex; justify-content: space-between; gap: 14px;
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(245, 236, 241, .07);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .fragments li:last-child{ border-bottom: 0; }
+  .fragments li span:last-child{ font: 9px var(--mono); color: var(--faint); letter-spacing: .08em; }
+
+  .foot{
+    display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+    padding-top: 15px;
+    border-top: 1px solid var(--line);
+    font: 9px var(--mono); letter-spacing: .16em; color: var(--faint);
+  }
+  .breath{
+    flex: 1; min-width: 200px; height: 12px;
+    display: flex; align-items: center;
+  }
+  .breath i{
+    display: block; width: 100%; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(242, 196, 218, .55), transparent);
+    animation: breathe 12s ease-in-out infinite;
+    transform-origin: center;
+  }
+  @keyframes breathe{ 0%, 100%{ transform: scaleX(.28); opacity: .35; } 50%{ transform: scaleX(1); opacity: .9; } }
+  .foot .sig{ color: var(--accent); }
+
+  .warn{
+    margin-top: 16px;
+    max-width: 430px;
+    padding: 8px 12px;
+    border-left: 2px solid #E3A04A;
+    background: rgba(0, 0, 0, .3);
+    font-size: 11px;
+    line-height: 1.7;
+    color: #D8C7AB;
+  }
+  @media (max-width: 920px){
+    body{ overflow: auto; }
+    .app{ height: auto; min-height: 100vh; }
+    .main{ grid-template-columns: 1fr; padding: 32px 0; }
+    .card{ justify-self: start; max-width: 420px; margin-top: 30px; }
+    .nav nav{ display: none; }
+    .glow{ display: none; }
+  }
+  @media (max-width: 560px){
+    h1{ font-size: 42px; }
+    .foot .hide-sm{ display: none; }
+  }
+</style>
+</head>
+<body>
+  <div id="app">
+    <div class="app" @pointermove="track">
+      <shader class="shader" :disable-telemetry="true" @unavailable="gpuError = $event">
+        <linear-gradient color-a="#090714" color-b="#1B1532" :angle="155" />
+        <mesh-gradient
+          :color-a="palette.meshA"
+          :color-b="palette.meshB"
+          :count="4"
+          :smoothness="3.4"
+          :variation="0.22"
+          :swirl="0.18"
+          :drift="0.14"
+          :speed="0.22"
+        />
+        <smoke-flow
+          :color-a="palette.smokeA"
+          :color-b="palette.smokeB"
+          :intensity="0.55"
+          :emit-radius="0.16"
+          :momentum="9"
+          :dissipation="0.24"
+          :detail="18"
+          :gravity="-0.1"
+          :color-decay="0.55"
+          blend-mode="screen"
+          :opacity="0.62"
+        />
+        <floating-particles
+          :count="240"
+          :speed="0.02"
+          particle-color="#FFEAF6"
+          :particle-size="1.5"
+          :softness="0.7"
+          :twinkle="0.25"
+          :randomness="0.2"
+          :opacity="0.5"
+        />
+        <light-leak
+          :position="{ x: 0.82, y: 0.18 }"
+          :spread="0.7"
+          :intensity="0.1"
+          :streaks="0.3"
+          color-hot="#FFE8F2"
+          color-mid="#C9A7FF"
+          color-fringe="#7FD8D0"
+          :flicker="0.05"
+          :speed="0.2"
+          blend-mode="screen"
+          :opacity="0.7"
+        />
+        <film-grain :strength="0.09" :animated="false" />
+      </shader>
+
+      <div class="veil"></div>
+      <div class="glow" ref="glow"></div>
+
+      <div class="ui">
+        <header class="nav">
+          <div class="brand">REVERIE<b>.</b></div>
+          <nav>
+            <a href="#">梦境</a>
+            <a href="#">片段</a>
+            <a href="#">醒来</a>
+          </nav>
+          <span class="edition">NO. 03 / NIGHT</span>
+        </header>
+
+        <main class="main">
+          <section class="hero">
+            <div class="eyebrow">A SLOW DREAM / 03</div>
+            <h1>在醒来之前，<br />再待<em>一会儿</em>。</h1>
+            <p class="lede">雾从很远的地方来，带着一点月光和旧信纸的气味。这里没有需要完成的事，只有缓慢经过的光，和一场没有结尾的梦。</p>
+            <div class="actions">
+              <button class="btn" type="button" @click="cycle">换一个梦</button>
+              <span class="dream-name">NOW DREAMING / <b>{{ palette.name }}</b></span>
+            </div>
+            <div class="warn" v-if="gpuError">
+              当前浏览器未启用 WebGPU（{{ gpuError || 'unknown' }}），雾与光无法实时渲染。若通过局域网 IP 的 http:// 打开，浏览器会禁用 WebGPU；请改用 localhost / 127.0.0.1 或 HTTPS。
+            </div>
+          </section>
+
+          <aside class="card">
+            <div class="card__top"><span>DREAM LOG</span><b>03 FRAGMENTS</b></div>
+            <div class="orb" aria-hidden="true"></div>
+            <h2>雾中梦</h2>
+            <div class="en">REVERIE / A SLOW DREAM</div>
+            <ul class="fragments">
+              <li><span>潮汐把星星推上岸</span><span>00:41</span></li>
+              <li><span>一封没有寄出的信</span><span>02:17</span></li>
+              <li><span>凌晨四点的花园</span><span>04:03</span></li>
+            </ul>
+          </aside>
+        </main>
+
+        <footer class="foot">
+          <span><span class="sig">●</span> SLOW MOTION</span>
+          <span class="hide-sm">WEBGPU MIST · 24S DRIFT · 60 FPS TARGET</span>
+          <div class="breath"><i></i></div>
+          <span class="sig">REVERIE</span>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <script src="./vendor/vue-runtime.js"></script>
+  <script>
+    const { Vue, Shaders } = window.HSPV_VUE;
+    const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
+    const { Shader, LinearGradient, MeshGradient, SmokeFlow, FloatingParticles, LightLeak, FilmGrain } = Shaders;
+
+    const DREAMS = [
+      { name: '雾玫瑰', meshA: '#160F2A', meshB: '#6F5AA8', smokeA: '#F2C4DA', smokeB: '#9C8CFF' },
+      { name: '月光苔', meshA: '#0F1A22', meshB: '#4E7A78', smokeA: '#CDE8E3', smokeB: '#B7A8E8' },
+      { name: '旧信纸', meshA: '#1B1020', meshB: '#7A4E6E', smokeA: '#FFD9C7', smokeB: '#C7B8FF' },
+    ];
+
+    createApp({
+      components: { Shader, LinearGradient, MeshGradient, SmokeFlow, FloatingParticles, LightLeak, FilmGrain },
+      setup(){
+        const paletteIndex = ref(0);
+        const palette = computed(() => DREAMS[paletteIndex.value]);
+        const gpuError = ref('');
+        const glow = ref(null);
+        let timer = 0;
+
+        function cycle(){
+          paletteIndex.value = (paletteIndex.value + 1) % DREAMS.length;
+        }
+
+        function track(event){
+          if (!glow.value) return;
+          glow.value.style.transform = `translate(${event.clientX}px, ${event.clientY}px)`;
+        }
+
+        onMounted(() => {
+          timer = setInterval(() => {
+            paletteIndex.value = (paletteIndex.value + 1) % DREAMS.length;
+          }, 26000);
+        });
+
+        onUnmounted(() => clearInterval(timer));
+
+        return { palette, gpuError, glow, cycle, track };
+      },
+    }).mount('#app');
+  </script>
+</body>
+</html>
