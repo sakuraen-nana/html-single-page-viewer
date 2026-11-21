@@ -32,6 +32,16 @@
       radial-gradient(70% 80% at 52% 100%, rgba(127, 216, 208, .12), transparent 60%),
       linear-gradient(155deg, #100C1E 0%, #090714 58%, #120C1A 100%);
   }
+  .scene{
+    position: absolute; inset: 0; z-index: 0;
+    transform-origin: center;
+    will-change: filter;
+    animation: scene-breath 4s ease-in-out infinite;
+  }
+  @keyframes scene-breath{
+    0%, 100%{ filter: brightness(.8) contrast(.94) saturate(.9); }
+    50%{ filter: brightness(1.32) contrast(1.16) saturate(1.12); }
+  }
   .shader{ position: absolute; inset: 0; width: 100%; height: 100%; }
   .mist{ position: absolute; inset: -12%; z-index: 0; pointer-events: none; }
   .mist i{
@@ -69,6 +79,16 @@
     animation: palette-fade 1.9s ease-out both;
   }
   @keyframes palette-fade{ 0%{ opacity: .1; } 100%{ opacity: 0; } }
+  .breath-light{
+    position: absolute; inset: -8%; z-index: 1; pointer-events: none;
+    background: radial-gradient(50% 48% at 50% 42%, rgba(255, 240, 247, .3), rgba(242, 196, 218, .14) 42%, transparent 72%);
+    mix-blend-mode: screen;
+    animation: breath-light 4s ease-in-out infinite;
+  }
+  @keyframes breath-light{
+    0%, 100%{ opacity: .08; transform: scale(.96); }
+    50%{ opacity: .42; transform: scale(1.04); }
+  }
   .frame{
     position: absolute; inset: 16px; z-index: 2;
     border: 1px solid rgba(245, 236, 241, .07);
@@ -197,9 +217,13 @@
     background:
       radial-gradient(circle at 36% 32%, rgba(255, 240, 248, .9), rgba(242, 196, 218, .55) 28%, rgba(156, 140, 255, .4) 62%, rgba(20, 14, 36, .1) 100%);
     box-shadow: 0 0 60px rgba(242, 196, 218, .26), inset 0 0 24px rgba(255, 255, 255, .16);
-    animation: float 12s ease-in-out infinite;
+    animation: float 12s ease-in-out infinite, orb-glow 4s ease-in-out infinite;
   }
   @keyframes float{ 50%{ transform: translateY(-7px) scale(1.04); } }
+  @keyframes orb-glow{
+    0%, 100%{ filter: brightness(.82); box-shadow: 0 0 34px rgba(242, 196, 218, .14), inset 0 0 16px rgba(255, 255, 255, .1); }
+    50%{ filter: brightness(1.18); box-shadow: 0 0 86px rgba(242, 196, 218, .44), inset 0 0 30px rgba(255, 255, 255, .24); }
+  }
   .card h2{
     text-align: center;
     font-family: var(--serif);
@@ -308,6 +332,7 @@
 <body>
   <div id="app">
     <div class="app" :style="{ '--accent': palette.smokeA }" @pointermove="track">
+      <div class="scene">
       <shader class="shader" :disable-telemetry="true" @unavailable="gpuError = $event">
         <linear-gradient color-a="#090714" color-b="#1B1532" :angle="155" />
         <mesh-gradient
@@ -323,15 +348,15 @@
         <smoke-flow
           :color-a="palette.smokeA"
           :color-b="palette.smokeB"
-          :intensity="0.55"
+          :intensity="0.72"
           :emit-radius="0.16"
-          :momentum="9"
-          :dissipation="0.24"
+          :momentum="8"
+          :dissipation="0.22"
           :detail="18"
           :gravity="-0.1"
           :color-decay="0.55"
           blend-mode="screen"
-          :opacity="0.62"
+          :opacity="0.72"
         />
         <floating-particles
           :count="300"
@@ -339,14 +364,14 @@
           particle-color="#FFEAF6"
           :particle-size="1.6"
           :softness="0.7"
-          :twinkle="0.25"
+          :twinkle="0.4"
           :randomness="0.2"
-          :opacity="0.5"
+          :opacity="0.62"
         />
         <light-leak
           :position="{ x: 0.82, y: 0.18 }"
           :spread="0.7"
-          :intensity="0.14"
+          :intensity="0.2"
           :streaks="0.3"
           color-hot="#FFE8F2"
           color-mid="#C9A7FF"
@@ -354,20 +379,23 @@
           :flicker="0.05"
           :speed="0.2"
           blend-mode="screen"
-          :opacity="0.7"
+          :opacity="0.82"
         />
+        <vignette color="#05030C" :radius="0.72" :falloff="0.6" :intensity="0.55" />
         <bokeh-blur
-          :radius="12"
-          :highlight-gain="2.6"
-          :highlight-threshold="0.55"
+          :radius="14"
+          :highlight-gain="3.6"
+          :highlight-threshold="0.48"
           :chromatic-fringe="0.15"
-          :opacity="0.85"
+          :opacity="0.9"
         />
-        <film-grain :strength="0.09" :animated="false" />
+        <film-grain :strength="0.11" :animated="false" />
       </shader>
-
       <div class="mist"><i></i><i></i><i></i></div>
+      </div>
+
       <div class="veil"></div>
+      <div class="breath-light"></div>
       <div class="palette-fade" :key="fadeKey"></div>
       <div class="frame"></div>
       <div class="side-label">REVERIE / SLOW DREAM / 03</div>
@@ -418,7 +446,7 @@
 
         <footer class="foot">
           <span><span class="sig">●</span> SLOW MOTION</span>
-          <span class="hide-sm">WEBGPU MIST · 26S CYCLE · 60 FPS TARGET</span>
+          <span class="hide-sm">WEBGPU MIST · BREATH 2S IN / 2S OUT · 26S CYCLE</span>
           <div class="cycle" :key="paletteIndex"><i></i></div>
           <span class="sig">REVERIE</span>
         </footer>
@@ -430,16 +458,16 @@
   <script>
     const { Vue, Shaders } = window.HSPV_VUE;
     const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
-    const { Shader, LinearGradient, MeshGradient, SmokeFlow, FloatingParticles, LightLeak, BokehBlur, FilmGrain } = Shaders;
+    const { Shader, LinearGradient, MeshGradient, SmokeFlow, FloatingParticles, LightLeak, Vignette, BokehBlur, FilmGrain } = Shaders;
 
     const DREAMS = [
-      { name: '雾玫瑰', meshA: '#160F2A', meshB: '#6F5AA8', smokeA: '#F2C4DA', smokeB: '#9C8CFF' },
-      { name: '月光苔', meshA: '#0F1A22', meshB: '#4E7A78', smokeA: '#CDE8E3', smokeB: '#B7A8E8' },
-      { name: '旧信纸', meshA: '#1B1020', meshB: '#7A4E6E', smokeA: '#FFD9C7', smokeB: '#C7B8FF' },
+      { name: '雾玫瑰', meshA: '#0D0718', meshB: '#8B6FD6', smokeA: '#FFD1E4', smokeB: '#A18CFF' },
+      { name: '月光苔', meshA: '#08131A', meshB: '#5E9B95', smokeA: '#DDF5EF', smokeB: '#BCA9FF' },
+      { name: '旧信纸', meshA: '#160A1A', meshB: '#9A5F86', smokeA: '#FFE2CE', smokeB: '#D4C2FF' },
     ];
 
     createApp({
-      components: { Shader, LinearGradient, MeshGradient, SmokeFlow, FloatingParticles, LightLeak, BokehBlur, FilmGrain },
+      components: { Shader, LinearGradient, MeshGradient, SmokeFlow, FloatingParticles, LightLeak, Vignette, BokehBlur, FilmGrain },
       setup(){
         const paletteIndex = ref(0);
         const palette = computed(() => DREAMS[paletteIndex.value]);
