@@ -56,11 +56,11 @@ Node 只用于本地起一个静态文件服务，nginx 部署不需要它。
 
 纯静态页面：浏览器读取 `config.json`，逐个请求列表中的 HTML 并解析 `<title>`，然后把页面地址交给 iframe。页面内用相对路径引用的 CSS/JS/图片由同一个静态站点直接提供，因此不需要 `/api/entries`、`/fs` 之类的动态接口。
 
-首次加载会额外请求列表中的 HTML 以读取标题（当前 18 个示例页合计约 210KB）；点击左侧条目时直接使用 iframe，不会重复读取列表。
+首次加载会额外请求列表中的 HTML 以读取标题（当前 16 个示例页合计约 190KB）；点击左侧条目时直接使用 iframe，不会重复读取列表。
 
 ## 示例单页
 
-`assets/showcase/` 下有 18 个自拟的演示页面，覆盖不同的内容量、复杂度、完成度与风格。前十个是纯单文件页面，不依赖外部资源；后八个使用本地打包的 React / Vue 与 shaders 运行时。
+`assets/showcase/` 下有 16 个自拟的演示页面，覆盖不同的内容量、复杂度、完成度与风格。前十个是纯单文件页面，不依赖外部资源；后六个使用本地打包的 React / Vue 与 shaders 运行时。
 
 | 文件 | 内容 |
 | --- | --- |
@@ -74,20 +74,18 @@ Node 只用于本地起一个静态文件服务，nginx 部署不需要它。
 | `08-form.html` | 三步式报名表单，带校验、步骤条与结果摘要 |
 | `09-gallery.html` | 纯 CSS 渐变画廊，9 幅作品、点击放大 |
 | `10-docs.html` | 高密度 API 文档，侧边目录、代码块复制 |
-| `11-react-prism.html` | React × shaders：棱镜光束全屏着陆页，可切换光源预设 |
 | `12-react-aurora.html` | React × shaders：极光 + 网格渐变双层合成器，参数实时联动 |
 | `13-react-noir.html` | React × shaders：光标轨迹海报，移动绘制、点击换配色 |
-| `14-vue-nebula.html` | Vue × shaders：星云香氛商品页，粒子与星云背景 |
 | `15-react-synapse.html` | React × shaders：神经脉冲 HUD，高速粒子流与故障扫描 |
 | `16-react-helios.html` | React × shaders：轨道观测站，全息星球与缓慢扫描的轨道环 |
 | `17-vue-lucid.html` | Vue × shaders：流光万花筒，跟随光标的高速镜像与星芒 |
 | `18-vue-reverie.html` | Vue × shaders：雾中梦，烟雾、浮尘与缓慢漂移的柔和渐变 |
 
-后八页使用 [shader-effects-inc/shaders](https://github.com/shader-effects-inc/shaders) 的 React / Vue 组件（WebGPU）。依赖已本地打包在 `assets/showcase/vendor/`（`shaders@4.0.7`、React 19、Vue 3.5），预览时不需要联网。**浏览器需支持 WebGPU**（Chrome / Edge 113+ 等），且需通过 `localhost` 或 HTTPS 访问；不支持或非安全上下文时页面会显示降级提示，文字与交互仍可用。
+后六页使用 [shader-effects-inc/shaders](https://github.com/shader-effects-inc/shaders) 的 React / Vue 组件（WebGPU）。依赖已本地打包在 `assets/showcase/vendor/`（`shaders@4.0.7`、React 19、Vue 3.5），预览时不需要联网。**浏览器需支持 WebGPU**（Chrome / Edge 113+ 等），且需通过 `localhost` 或 HTTPS 访问；不支持或非安全上下文时页面会显示降级提示，文字与交互仍可用。
 
 ## 目录
 
 - `index.html`：界面
 - `config.json`：预览列表
-- `assets/showcase/`：18 个示例单页
+- `assets/showcase/`：16 个示例单页
 - `server.js`：可选的本地静态服务
