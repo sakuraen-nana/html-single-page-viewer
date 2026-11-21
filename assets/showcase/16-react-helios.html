@@ -259,6 +259,65 @@
       { name: "紫外", en: "ULTRAVIOLET", color: "#B79CFF", warm: "#7FE7FF" },
     ];
 
+    const CENTER = { x: 0.66, y: 0.46 };
+    const SHAPE = { type: 'sphere3D', radius: 0.3 };
+
+    const Scene = React.memo(function Scene({ color, onUnavailable }){
+      return html`<${Shader} className="shader" disableTelemetry=${true} onUnavailable=${onUnavailable}>
+        <${LinearGradient} colorA="#02060C" colorB="#06141F" angle=${120} />
+        <${MeshGradient}
+          colorA="#020A10"
+          colorB="#0A2230"
+          count=${4}
+          smoothness=${3.2}
+          variation=${0.2}
+          swirl=${0.15}
+          drift=${0.18}
+          speed=${0.25}
+        />
+        <${Grid} color="rgba(110, 220, 255, 0.055)" cells=${16} thickness=${0.5} rotation=${0} />
+        <${Hologram}
+          center=${CENTER}
+          scale=${1.08}
+          rotation=${0}
+          color=${color}
+          brightness=${1.35}
+          fill=${0.18}
+          edgeGlow=${1.1}
+          depthLines=${0.4}
+          depthScale=${26}
+          scanlines=${0.34}
+          scanlineScale=${140}
+          scanlineSpeed=${0.18}
+          sweep=${0.06}
+          flicker=${0.1}
+          distortion=${0.05}
+          grain=${0.35}
+          speed=${0.2}
+          shape=${SHAPE}
+        />
+        <${Godrays}
+          center=${CENTER}
+          density=${0.14}
+          intensity=${0.28}
+          rayColor=${color}
+          speed=${0.08}
+          blendMode="screen"
+          opacity=${0.65}
+        />
+        <${FloatingParticles}
+          count=${320}
+          speed=${0.03}
+          particleColor="#BEEFFF"
+          particleSize=${0.8}
+          twinkle=${0.25}
+          randomness=${0.2}
+          opacity=${0.55}
+        />
+        <${FilmGrain} strength=${0.12} animated=${false} />
+      <//>`;
+    });
+
     function App(){
       const [bandIndex, setBandIndex] = useState(0);
       const [gpuError, setGpuError] = useState('');
@@ -277,59 +336,7 @@
       }, []);
 
       return html`<div class="page" style=${{ '--accent': band.color, '--warm': band.warm }}>
-        <${Shader} className="shader" disableTelemetry=${true} onUnavailable=${setGpuError}>
-          <${LinearGradient} colorA="#02060C" colorB="#06141F" angle=${120} />
-          <${MeshGradient}
-            colorA="#020A10"
-            colorB="#0A2230"
-            count=${4}
-            smoothness=${3.2}
-            variation=${0.2}
-            swirl=${0.15}
-            drift=${0.18}
-            speed=${0.25}
-          />
-          <${Grid} color="rgba(110, 220, 255, 0.055)" cells=${16} thickness=${0.5} rotation=${0} />
-          <${Hologram}
-            center=${{ x: 0.66, y: 0.46 }}
-            scale=${1.08}
-            rotation=${0}
-            color=${band.color}
-            brightness=${1.35}
-            fill=${0.18}
-            edgeGlow=${1.1}
-            depthLines=${0.4}
-            depthScale=${26}
-            scanlines=${0.34}
-            scanlineScale=${140}
-            scanlineSpeed=${0.18}
-            sweep=${0.06}
-            flicker=${0.1}
-            distortion=${0.05}
-            grain=${0.35}
-            speed=${0.2}
-            shape=${{ type: 'sphere3D', radius: 0.3 }}
-          />
-          <${Godrays}
-            center=${{ x: 0.66, y: 0.46 }}
-            density=${0.14}
-            intensity=${0.28}
-            rayColor=${band.color}
-            speed=${0.08}
-            blendMode="screen"
-            opacity=${0.65}
-          />
-          <${FloatingParticles}
-            count=${320}
-            speed=${0.03}
-            particleColor="#BEEFFF"
-            particleSize=${0.8}
-            twinkle=${0.25}
-            randomness=${0.2}
-            opacity=${0.55}
-          />
-          <${FilmGrain} strength=${0.12} animated=${false} />
-        <//>
+        <${Scene} color=${band.color} onUnavailable=${setGpuError} />
 
         <div class="scanlines"></div>
         <div class="vignette"></div>

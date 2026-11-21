@@ -289,6 +289,45 @@
       }).join(' ');
     }
 
+    const Scene = React.memo(function Scene({ colorA, colorB, onUnavailable }){
+      return html`<${Shader} className="shader" disableTelemetry=${true} onUnavailable=${onUnavailable}>
+        <${LinearGradient} colorA="#02060C" colorB="#07172A" angle=${125} />
+        <${MeshGradient}
+          colorA="#020A14"
+          colorB="#0B2440"
+          count=${6}
+          smoothness=${2.1}
+          variation=${0.55}
+          swirl=${0.62}
+          drift=${0.75}
+          speed=${1.5}
+        />
+        <${ParticleFlow}
+          colorA=${colorA}
+          colorB=${colorB}
+          shape="streak"
+          count=${10000}
+          size=${1.15}
+          speed=${2.4}
+          force=${1.5}
+          swirl=${44}
+          momentum=${0.55}
+          trails=${0.32}
+          ambient=${0.08}
+        />
+        <${Glitch}
+          intensity=${0.12}
+          speed=${2.2}
+          rgbShift=${3}
+          blockDensity=${26}
+          scanlineIntensity=${0.12}
+          blendMode="screen"
+          opacity=${0.38}
+        />
+        <${FilmGrain} strength=${0.13} animated=${true} />
+      <//>`;
+    });
+
     function App(){
       const [paletteIndex, setPaletteIndex] = useState(0);
       const [gpuError, setGpuError] = useState('');
@@ -334,42 +373,7 @@
         onClick=${cycle}
       >
         <div class="shader-wrap">
-          <${Shader} className="shader" disableTelemetry=${true} onUnavailable=${setGpuError}>
-            <${LinearGradient} colorA="#02060C" colorB="#07172A" angle=${125} />
-            <${MeshGradient}
-              colorA="#020A14"
-              colorB="#0B2440"
-              count=${6}
-              smoothness=${2.1}
-              variation=${0.55}
-              swirl=${0.62}
-              drift=${0.75}
-              speed=${1.5}
-            />
-            <${ParticleFlow}
-              colorA=${palette.a}
-              colorB=${palette.b}
-              shape="streak"
-              count=${10000}
-              size=${1.15}
-              speed=${2.4}
-              force=${1.5}
-              swirl=${44}
-              momentum=${0.55}
-              trails=${0.32}
-              ambient=${0.08}
-            />
-            <${Glitch}
-              intensity=${0.12}
-              speed=${2.2}
-              rgbShift=${3}
-              blockDensity=${26}
-              scanlineIntensity=${0.12}
-              blendMode="screen"
-              opacity=${0.38}
-            />
-            <${FilmGrain} strength=${0.13} animated=${true} />
-          <//>
+          <${Scene} colorA=${palette.a} colorB=${palette.b} onUnavailable=${setGpuError} />
         </div>
         <div class="grid"></div>
         <div class="scan"></div>
