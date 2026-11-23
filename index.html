@@ -1218,6 +1218,7 @@
   const ZOOM_MAX = 200;
   const ZOOM_STEP = 10;
   const ZOOM_STORAGE_KEY = 'html-single-page-viewer:zoom';
+  const SIZE_STORAGE_KEY = 'html-single-page-viewer:size';
   const DEFAULT_TITLE = '单页预览';
   const DEFAULT_TITLE_SEPARATOR = ' · ';
   const SIZE_PRESETS = [360, 480, 720, 1080, 1920, 2160, 3840];
@@ -1569,6 +1570,109 @@
       if (Number.isFinite(stored) && stored >= ZOOM_MIN && stored <= ZOOM_MAX) return stored;
     } catch {}
     return 100;
+  }
+
+  function isValidSizeEdge(value) {
+    return typeof value === 'number' && Number.isInteger(value) && value > 0;
+  }
+
+  function readStoredSize() {
+    let raw;
+    try {
+      const text = localStorage.getItem(SIZE_STORAGE_KEY);
+      if (text == null) return null;
+      raw = JSON.parse(text);
+    } catch {
+      try { localStorage.removeItem(SIZE_STORAGE_KEY); } catch {}
+      return null;
+    }
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+      try { localStorage.removeItem(SIZE_STORAGE_KEY); } catch {}
+      return null;
+    }
+
+    const state = {
+      ratio: 'auto',
+      orientation: 'landscape',
+      short: 'auto',
+      long: 'auto',
+      width: null,
+      height: null,
+    };
+    let dirty = false;
+
+    if (raw.ratio !== undefined) {
+      if (
+        raw.ratio === 'auto' ||
+        (typeof raw.ratio === 'string' && Object.prototype.hasOwnProperty.call(SIZE_RATIOS, raw.ratio))
+      ) {
+        state.ratio = raw.ratio;
+      } else {
+        dirty = true;
+      }
+    }
+    if (raw.orientation !== undefined) {
+      if (raw.orientation === 'landscape' || raw.orientation === 'portrait') {
+        state.orientation = raw.orientation;
+      } else {
+        dirty = true;
+      }
+    }
+    for (const key of ['short', 'long']) {
+      if (raw[key] === undefined) continue;
+      if (raw[key] === 'auto') state[key] = 'auto';
+      else if (isValidSizeEdge(raw[key])) state[key] = raw[key];
+      else dirty = true;
+    }
+    for (const key of ['width', 'height']) {
+      if (raw[key] === undefined || raw[key] === null) continue;
+      if (isValidSizeEdge(raw[key])) state[key] = raw[key];
+      else dirty = true;
+    }
+    if (
+      typeof state.short === 'number' &&
+      typeof state.long === 'number' &&
+      state.short > state.long
+    ) {
+      [state.short, state.long] = [state.long, state.short];
+      dirty = true;
+    }
+    return { state, dirty };
+  }
+
+  function persistSize() {
+    try {
+      localStorage.setItem(SIZE_STORAGE_KEY, JSON.stringify({
+        ratio: sizeState.ratio,
+        orientation: sizeState.orientation,
+        short: sizeState.short,
+        long: sizeState.long,
+        width: sizeState.width,
+        height: sizeState.height,
+      }));
+    } catch {}
+  }
+
+  function clearStoredSize() {
+    try { localStorage.removeItem(SIZE_STORAGE_KEY); } catch {}
+  }
+
+  function ensureEdgeOption(select, value) {
+    if (typeof value !== 'number') return;
+    if (select.querySelector(`option[value="${value}"]`)) return;
+    const option = document.createElement('option');
+    option.value = String(value);
+    option.textContent = String(value);
+    select.append(option);
+  }
+
+  function applyStoredSize() {
+    const stored = readStoredSize();
+    if (!stored) return;
+    Object.assign(sizeState, stored.state);
+    if (stored.dirty) persistSize();
+    ensureEdgeOption(els.sizeShort, sizeState.short);
+    ensureEdgeOption(els.sizeLong, sizeState.long);
   }
 
   function zoomPercent() {
@@ -1940,6 +2044,7 @@
       sizeState.ratio = 'auto';
     }
     userLayoutFrame();
+    persistSize();
   }
 
   function handleManualSizeChange() {
@@ -1963,6 +2068,7 @@
     els.sizeWidth.value = width == null ? '' : String(width);
     els.sizeHeight.value = height == null ? '' : String(height);
     userLayoutFrame();
+    persistSize();
   }
 
   els.sizeRatio.addEventListener('change', () => {
@@ -1977,10 +2083,12 @@
     }
     sizeState.ratio = value;
     userLayoutFrame();
+    persistSize();
   });
   els.sizeOrient.addEventListener('click', () => {
     sizeState.orientation = sizeState.orientation === 'portrait' ? 'landscape' : 'portrait';
     userLayoutFrame();
+    persistSize();
   });
   els.sizeShort.addEventListener('change', () => handleEdgeChange('short'));
   els.sizeLong.addEventListener('change', () => handleEdgeChange('long'));
@@ -1995,6 +2103,7 @@
     sizeState.height = null;
     els.sizeWidth.value = '';
     els.sizeHeight.value = '';
+    clearStoredSize();
     userLayoutFrame();
     showToast('已重置尺寸限制');
   });
@@ -2150,11 +2259,16 @@
 
   function applyHashOnLoad() {
     const match = window.location.hash.match(/^#\/entry\/(\d+)$/);
-    if (match && entries[Number(match[1])]) {
-      selectEntry(Number(match[1]), { updateLocation: false });
-    } else {
-      const firstUsable = entries.findIndex((entry) => entry.src);
-      if (firstUsable >= 0) selectEntry(firstUsable, { updateLocation: false });
+    const hashIndex = match ? Number(match[1]) : null;
+    if (hashIndex != null && entries[hashIndex]) {
+      selectEntry(hashIndex, { updateLocation: false });
+      return;
+    }
+    const firstUsable = firstUsableIndex();
+    if (firstUsable >= 0) {
+      selectEntry(firstUsable, { updateLocation: false });
+      // 深链无效时用 replaceState 把地址修正为当前有效条目；无 hash 的普通访问不写。
+      if (window.location.hash) updateHash();
     }
   }
 
@@ -2343,9 +2457,13 @@
 
   window.addEventListener('hashchange', () => {
     const match = window.location.hash.match(/^#\/entry\/(\d+)$/);
-    if (match && entries[Number(match[1])] && Number(match[1]) !== activeIndex) {
-      selectEntry(Number(match[1]), { updateLocation: false });
+    const hashIndex = match ? Number(match[1]) : null;
+    if (hashIndex != null && entries[hashIndex]) {
+      if (hashIndex !== activeIndex) selectEntry(hashIndex, { updateLocation: false });
+      return;
     }
+    // 非法/越界 hash：仅把地址修正回当前激活条目，不报错、不破坏当前预览。
+    updateHash();
   });
 
   document.addEventListener('keydown', (event) => {
@@ -2399,6 +2517,7 @@
   });
 
   initSizeControls();
+  applyStoredSize();
   updateZoomReadout();
   layoutFrame();
   applyDocumentTitle();
