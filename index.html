@@ -375,15 +375,18 @@
   }
   .frame-loadbar span{
     display: block;
-    width: 38%;
+    width: 100%;
     height: 100%;
-    border-radius: 0 2px 2px 0;
+    transform-origin: left center;
+    transform: scaleX(.08);
+    opacity: .55;
     background: var(--gold);
-    animation: loadbar-slide 1.1s var(--ease-standard) infinite;
+    animation: loadbar-breathe 1.1s var(--ease-standard) infinite;
   }
-  @keyframes loadbar-slide{
-    from{ transform: translateX(-110%); }
-    to{ transform: translateX(360%); }
+  /* 金色进度始终锚定左端，在 8%–100% 之间呼吸，任意时刻都保留可见部分 */
+  @keyframes loadbar-breathe{
+    0%, 100%{ transform: scaleX(.08); opacity: .55; }
+    50%{ transform: scaleX(1); opacity: 1; }
   }
   .frame-mask{
     position: absolute; inset: 0;
@@ -1232,6 +1235,8 @@
   };
   let maskTimer = 0;
   let layoutAnimationTimer = 0;
+  // 当前布局的适配系数（1 表示完整适配/自适应），用于判定尺寸切换是否允许过渡。
+  let currentLayoutFit = 1;
   let toastTimer = 0;
   let loadStatusText = '';
 
@@ -1497,6 +1502,7 @@
       els.frameScaler.style.width = `${metrics.rect.width / zoomScale}px`;
       els.frameScaler.style.height = `${metrics.rect.height / zoomScale}px`;
       els.frameScaler.style.transform = `scale(${zoomScale})`;
+      currentLayoutFit = 1;
       return 1;
     }
     const fit = Math.min(1, metrics.rect.width / target.w, metrics.rect.height / target.h);
@@ -1508,6 +1514,7 @@
     els.frameScaler.style.height = `${target.h}px`;
     els.frameScaler.style.transform =
       `translate(${offsetX}px, ${offsetY}px) scale(${visualScale})`;
+    currentLayoutFit = fit;
     return fit;
   }
 
@@ -1620,15 +1627,33 @@
     renderSizer(target, fit);
   }
 
+  function computeTargetFit(metrics, target) {
+    if (!metrics) return null;
+    if (!target) return 1;
+    return Math.min(1, metrics.rect.width / target.w, metrics.rect.height / target.h);
+  }
+
   function userLayoutFrame() {
     clearTimeout(layoutAnimationTimer);
-    if (REDUCED_MOTION.matches) {
-      els.frameScaler.classList.remove('is-layout-animating');
-    } else {
+    // 过渡资格：仅当旧布局与新布局都完整适配（fit≥0.999 或自适应）时才平滑过渡。
+    // 受限尺寸（fit<1）切换若参与过渡，width/height 与 scale 同时线性插值会使视觉宽
+    // width×scale 在中间帧凸出并被预览区裁切，因此这类切换即时完成，不添加过渡类。
+    const metrics = viewportMetrics();
+    if (metrics) updateSizeAvailability(metrics);
+    const nextFit = computeTargetFit(metrics, metrics ? computeTargetSize(metrics) : null);
+    const canAnimate =
+      Boolean(metrics) &&
+      !REDUCED_MOTION.matches &&
+      currentLayoutFit >= 0.999 &&
+      nextFit != null &&
+      nextFit >= 0.999;
+    if (canAnimate) {
       els.frameScaler.classList.add('is-layout-animating');
       layoutAnimationTimer = setTimeout(() => {
         els.frameScaler.classList.remove('is-layout-animating');
       }, LAYOUT_ANIMATION_MS);
+    } else {
+      els.frameScaler.classList.remove('is-layout-animating');
     }
     layoutFrame();
   }
