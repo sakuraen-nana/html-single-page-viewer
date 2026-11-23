@@ -17,6 +17,7 @@
     --text: #2B2822;
     --muted: #6F6A5F;
     --faint: #7C7669;
+    --muted-strong: #5A554B;
     --gold: #8F6A2C;
     --gold-line: #C08A4E;
     --danger: #B0453A;
@@ -370,6 +371,7 @@
     height: 2px;
     overflow: hidden;
     pointer-events: none;
+    background: var(--line-soft);
   }
   .frame-loadbar span{
     display: block;
@@ -405,12 +407,12 @@
     pointer-events: auto;
     transition: opacity var(--dur-2) var(--ease-standard);
   }
-  .frame-mask__label{ font-size: 13px; }
+  .frame-mask__label{ font-size: 13px; color: var(--text); }
   .frame-mask__detail{
     max-width: 340px;
     margin-top: 4px;
     font-size: 11px;
-    color: var(--faint);
+    color: var(--muted-strong);
     overflow-wrap: anywhere;
   }
 
@@ -522,6 +524,12 @@
       opacity var(--dur-2) var(--ease-standard),
       transform var(--dur-2) var(--ease-out);
   }
+  @media (min-width: 761px){
+    /* 宽屏以预览区（stage）为居中基准，而非整个视口 */
+    .toast{
+      left: calc(var(--sidebar-w) + (100vw - var(--sidebar-w)) / 2);
+    }
+  }
   .sr-only{
     position: absolute;
     width: 1px; height: 1px;
@@ -603,7 +611,7 @@
   .hud__range:focus-visible,
   .tab:focus-visible,
   .icon-btn:focus-visible,
-  .action:focus-visible{ outline: 2px solid var(--gold-line); outline-offset: 2px; }
+  .action:focus-visible{ outline: 2px solid var(--gold); outline-offset: 2px; }
   .hud__btn svg{ width: 13px; height: 13px; }
   .hud__menu{ display: none; }
   .hud__range{
@@ -737,7 +745,7 @@
     border-color: var(--gold-line);
     background: var(--panel-2);
   }
-  .sizer__orient:focus-visible{ outline: 2px solid var(--gold-line); outline-offset: 2px; }
+  .sizer__orient:focus-visible{ outline: 2px solid var(--gold); outline-offset: 2px; }
   .sizer__input{
     width: 72px;
     padding: 0 6px;
@@ -770,7 +778,7 @@
   .sizer__reset:active{ transform: scale(.96); background: var(--panel-2); }
   .sizer__select:focus-visible,
   .sizer__input:focus-visible,
-  .sizer__reset:focus-visible{ outline: 2px solid var(--gold-line); outline-offset: 2px; }
+  .sizer__reset:focus-visible{ outline: 2px solid var(--gold); outline-offset: 2px; }
 
   @media (min-width: 1500px){
     :root{ --sidebar-w: 336px; }
