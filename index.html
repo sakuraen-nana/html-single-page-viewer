@@ -79,6 +79,10 @@
     font-size: 11.5px; color: var(--faint);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
+  .icon-btn, .action, .tab, .hud__btn,
+  .sizer__select, .sizer__reset, .sizer__orient{
+    touch-action: manipulation;
+  }
   .icon-btn{
     margin-left: auto;
     display: grid; place-items: center;
@@ -828,6 +832,7 @@
     }
     .sidebar__head{ padding: 10px 12px 8px; gap: 6px; }
     .sidebar__foot{ display: none; }
+    .icon-btn{ width: 44px; height: 44px; }
     .drawer__close{ display: grid; margin-left: 0; flex: none; }
     .tabs{
       flex-direction: column;
@@ -874,7 +879,7 @@
     .stage__src{ display: none; }
     .stage__name{ font-size: 12.5px; }
     .stage__actions{ gap: 6px; }
-    .action{ height: 30px; padding: 0 9px; font-size: 11.5px; }
+    .action{ height: 40px; padding: 0 12px; font-size: 11.5px; }
 
     .stage__hud{
       display: grid;
@@ -918,8 +923,8 @@
       text-overflow: ellipsis;
     }
     .hud__zoom{ grid-area: zoom; width: 100%; margin-left: 0; gap: 6px; }
-    .hud__btn{ width: 36px; height: 36px; border-radius: 8px; font-size: 17px; }
-    .hud__range{ height: 36px; }
+    .hud__btn{ width: 44px; height: 44px; border-radius: 8px; font-size: 17px; }
+    .hud__range{ height: 44px; }
     .hud__range::-webkit-slider-thumb{ width: 20px; height: 20px; margin-top: -8px; }
     .hud__range::-moz-range-thumb{ width: 18px; height: 18px; }
     .hud__zoom-key{ display: none; }
@@ -935,7 +940,7 @@
     .sizer__select,
     .sizer__input,
     .sizer__reset,
-    .sizer__orient{ height: 32px; font-size: 11px; }
+    .sizer__orient{ height: 40px; font-size: 11px; }
     .sizer__select{ padding: 0 4px; }
     .sizer__orient{ padding: 0 6px; }
     .sizer__input{ width: 52px; padding: 0 4px; }
@@ -958,7 +963,7 @@
   }
   @media (max-width: 420px){
     .action__label{ display: none; }
-    .action{ width: 32px; padding: 0; justify-content: center; }
+    .action{ width: 40px; padding: 0; justify-content: center; }
     .stage__brand{ max-width: 42vw; padding-right: 8px; }
     .stage__brand-title{ font-size: 12px; letter-spacing: 1px; }
     .stage__brand-sub{ font-size: 9.5px; }
@@ -1266,6 +1271,23 @@
 
   function isDrawerLayout() {
     return DRAWER_MEDIA.matches;
+  }
+
+  function isEditableTarget(target) {
+    if (!(target instanceof HTMLElement)) return false;
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return true;
+    return target.isContentEditable;
+  }
+
+  function firstUsableIndex() {
+    return entries.findIndex((entry) => entry.src);
+  }
+
+  function lastUsableIndex() {
+    for (let index = entries.length - 1; index >= 0; index -= 1) {
+      if (entries[index].src) return index;
+    }
+    return -1;
   }
 
   function setDrawerOpen(open, { restoreFocus = true } = {}) {
@@ -2110,14 +2132,30 @@
       setDrawerOpen(false);
       return;
     }
-    if (event.target instanceof HTMLElement && /^(INPUT|TEXTAREA)$/.test(event.target.tagName)) return;
-    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    const navigationKeys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
+    if (!navigationKeys.includes(event.key)) return;
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (isEditableTarget(event.target)) return;
     if (!entries.length) return;
+
+    let next = -1;
+    if (event.key === 'Home') {
+      next = firstUsableIndex();
+    } else if (event.key === 'End') {
+      next = lastUsableIndex();
+    } else {
+      const direction = event.key === 'ArrowDown' ? 1 : -1;
+      next = activeIndex === null ? 0 : activeIndex + direction;
+      while (next >= 0 && next < entries.length && !entries[next].src) next += direction;
+    }
+    if (next < 0 || next >= entries.length) return;
+
+    const focusInTabs = els.tabs.contains(document.activeElement);
     event.preventDefault();
-    const direction = event.key === 'ArrowDown' ? 1 : -1;
-    let next = activeIndex === null ? 0 : activeIndex + direction;
-    while (next >= 0 && next < entries.length && !entries[next].src) next += direction;
-    if (next >= 0 && next < entries.length) selectEntry(next);
+    selectEntry(next);
+    if (focusInTabs) {
+      els.tabs.querySelector('.tab.is-active')?.focus({ preventScroll: true });
+    }
   });
 
   initSizeControls();
