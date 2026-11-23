@@ -25,7 +25,12 @@
     --mono: ui-monospace, "SF Mono", Consolas, monospace;
     font-family: "Noto Sans CJK SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   }
-  *{ box-sizing: border-box; margin: 0; padding: 0; }
+  *{
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
   [hidden]{ display: none !important; }
   html, body{ height: 100%; }
   body{
@@ -80,6 +85,7 @@
   .icon-btn:hover{ color: var(--text); border-color: var(--gold-line); }
   .icon-btn.spinning{ transform: rotate(360deg); }
   .icon-btn svg{ width: 15px; height: 15px; }
+  .drawer__close{ display: none; }
 
   .tabs{
     flex: 1;
@@ -213,6 +219,30 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     direction: rtl;
   }
+  .stage__brand{
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    flex: none;
+    min-width: 0;
+    max-width: 42vw;
+    padding-right: 10px;
+    border-right: 1px solid var(--line-soft);
+    overflow: hidden;
+  }
+  .stage__brand-title{
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--gold);
+    white-space: nowrap;
+  }
+  .stage__brand-sub{
+    max-width: 100%;
+    font-size: 10.5px;
+    color: var(--faint);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
   .stage__actions{ margin-left: auto; display: flex; gap: 8px; flex: none; }
   .action{
     display: inline-flex; align-items: center; gap: 6px;
@@ -252,6 +282,11 @@
     transform-origin: top left;
     will-change: transform;
   }
+  .frame-scaler.is-custom{
+    left: 50%;
+    top: 50%;
+    transform-origin: center center;
+  }
   .frame-scaler iframe{
     width: 100%;
     height: 100%;
@@ -269,6 +304,24 @@
     color: var(--muted);
   }
   .frame-mask.is-visible{ display: grid; }
+
+  .drawer__scrim{
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    background: rgba(43, 40, 34, .34);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .26s ease, visibility 0s linear .26s;
+  }
+  .drawer__scrim.is-open{
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition: opacity .26s ease;
+  }
+
   .spinner{
     width: 26px; height: 26px;
     border: 2px solid var(--line);
@@ -387,6 +440,7 @@
   .hud__btn:focus-visible,
   .hud__range:focus-visible{ outline: 2px solid var(--gold-line); outline-offset: 2px; }
   .hud__btn svg{ width: 13px; height: 13px; }
+  .hud__menu{ display: none; }
   .hud__range{
     --fill: 42.86%;
     flex: 1;
@@ -446,6 +500,93 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* ── iframe 尺寸限制条 ───────────────────────── */
+  .stage__sizer{
+    flex: none;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 6px 14px;
+    border-top: 1px solid var(--line);
+    background: var(--panel);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .sizer__title{
+    font-size: 10px;
+    letter-spacing: .4px;
+    color: var(--faint);
+  }
+  .sizer__field{
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .sizer__label{ font-size: 10px; color: var(--faint); }
+  .sizer__select,
+  .sizer__input,
+  .sizer__reset{
+    height: 28px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+  }
+  .sizer__select{ padding: 0 6px; cursor: pointer; }
+  .sizer__select:disabled{ opacity: .55; background: var(--panel-2); cursor: default; }
+  .sizer__orient{
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--muted);
+    font: inherit;
+    font-size: 11px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  .sizer__orient:hover{ color: var(--text); border-color: var(--gold-line); }
+  .sizer__orient[data-orientation="portrait"]{
+    color: var(--gold);
+    border-color: var(--gold-line);
+    background: var(--panel-2);
+  }
+  .sizer__orient:focus-visible{ outline: 2px solid var(--gold-line); outline-offset: 2px; }
+  .sizer__input{
+    width: 72px;
+    padding: 0 6px;
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .sizer__input::placeholder{ color: var(--faint); font-family: inherit; }
+  .sizer__unit{ font-size: 9px; color: var(--faint); }
+  .sizer__readout{
+    margin-left: auto;
+    min-width: 0;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--gold);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sizer__reset{
+    padding: 0 10px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: color .15s, border-color .15s;
+  }
+  .sizer__reset:hover{ color: var(--text); border-color: var(--gold-line); }
+  .sizer__select:focus-visible,
+  .sizer__input:focus-visible,
+  .sizer__reset:focus-visible{ outline: 2px solid var(--gold-line); outline-offset: 2px; }
+
   @media (min-width: 1500px){
     :root{ --sidebar-w: 336px; }
   }
@@ -461,53 +602,96 @@
   @media (max-width: 760px){
     body{
       grid-template-columns: minmax(0, 1fr);
-      grid-template-rows: auto minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr);
     }
+    /* 侧栏改为覆盖约 70% 宽度的左侧条目抽屉 */
     .sidebar{
-      max-height: 34dvh;
-      border-right: 0;
-      border-bottom: 1px solid var(--line);
+      position: fixed;
+      top: 0; bottom: 0; left: 0;
+      z-index: 40;
+      width: 70vw;
+      max-height: none;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+      border-right: 1px solid var(--line);
+      border-bottom: 0;
+      box-shadow: 0 12px 40px rgba(43, 40, 34, .22);
+      transform: translateX(-102%);
+      visibility: hidden;
+      pointer-events: none;
+      transition: transform .28s cubic-bezier(.2,.8,.2,1), visibility 0s linear .28s;
+      will-change: transform;
     }
-    .sidebar__head{ padding: 10px 14px 8px; }
+    .sidebar.is-open{
+      transform: translateX(0);
+      visibility: visible;
+      pointer-events: auto;
+      transition: transform .28s cubic-bezier(.2,.8,.2,1);
+    }
+    .sidebar__head{ padding: 10px 12px 8px; gap: 6px; }
     .sidebar__foot{ display: none; }
+    .drawer__close{ display: grid; margin-left: 0; flex: none; }
     .tabs{
-      flex-direction: row;
-      overflow-x: auto;
-      overflow-y: hidden;
-      padding: 4px 10px 10px;
-      gap: 8px;
-      scroll-snap-type: x proximity;
+      flex-direction: column;
+      overflow-x: hidden;
+      overflow-y: auto;
+      padding: 8px;
+      gap: 4px;
+      scroll-snap-type: none;
+      overscroll-behavior: contain;
     }
     .tab{
-      min-width: 176px;
-      min-height: 0;
-      height: 60px;
-      padding: 6px 9px 6px 10px;
-      grid-template-columns: 24px minmax(0, 1fr) 12px;
+      min-width: 0;
+      min-height: 54px;
+      height: auto;
+      padding: 8px 8px 8px 10px;
+      grid-template-columns: 26px minmax(0, 1fr) 14px;
       gap: 8px;
-      scroll-snap-align: start;
+      scroll-snap-align: none;
     }
     .tab__index{ width: 24px; height: 24px; }
     .tab__title{ font-size: 12.5px; }
     .tab__path{ font-size: 10px; }
     .tab.is-active::before{
-      left: 10px; right: 10px; top: auto; bottom: -1px;
-      width: auto; height: 3px; border-radius: 3px 3px 0 0;
+      left: -1px; right: auto; top: 9px; bottom: 9px;
+      width: 3px; height: auto; border-radius: 0 3px 3px 0;
     }
-    .stage__bar{ height: 44px; padding: 0 10px; gap: 8px; }
+
+    /* 顶部单行：品牌与统计、当前页标题、操作按钮 */
+    .stage__bar{
+      height: calc(52px + env(safe-area-inset-top));
+      padding: env(safe-area-inset-top) 10px 0;
+      gap: 8px;
+    }
+    .stage__brand{ display: flex; }
+    .stage__indicator{ display: none; }
+    .stage__label{ flex: 1; gap: 0; }
     .stage__src{ display: none; }
     .stage__name{ font-size: 12.5px; }
     .stage__actions{ gap: 6px; }
     .action{ height: 30px; padding: 0 9px; font-size: 11.5px; }
+
     .stage__hud{
       display: grid;
-      grid-template-columns: minmax(0, 1fr);
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas:
+        "menu status"
+        "zoom zoom";
       gap: 8px;
       min-height: 0;
       padding: 8px 10px calc(10px + env(safe-area-inset-bottom));
     }
+    /* 菜单按钮位于“真实分辨率”左侧、减号按钮上方 */
+    .hud__menu{
+      display: grid;
+      grid-area: menu;
+      align-self: center;
+      justify-self: start;
+    }
+    .hud__menu svg{ width: 16px; height: 16px; }
     .hud__status{
       display: grid;
+      grid-area: status;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 6px;
       width: 100%;
@@ -528,19 +712,52 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .hud__zoom{ width: 100%; margin-left: 0; gap: 6px; }
+    .hud__zoom{ grid-area: zoom; width: 100%; margin-left: 0; gap: 6px; }
     .hud__btn{ width: 36px; height: 36px; border-radius: 8px; font-size: 17px; }
     .hud__range{ height: 36px; }
     .hud__range::-webkit-slider-thumb{ width: 20px; height: 20px; margin-top: -8px; }
     .hud__range::-moz-range-thumb{ width: 18px; height: 18px; }
     .hud__zoom-key{ display: none; }
     .hud__zoom-value{ font-size: 12px; }
+
+    .stage__sizer{
+      padding: 8px 10px;
+      gap: 6px 8px;
+    }
+    .sizer__title{ display: none; }
+    .sizer__field{ gap: 4px; }
+    .sizer__label{ font-size: 9px; }
+    .sizer__select,
+    .sizer__input,
+    .sizer__reset,
+    .sizer__orient{ height: 32px; font-size: 11px; }
+    .sizer__select{ padding: 0 4px; }
+    .sizer__orient{ padding: 0 6px; }
+    .sizer__input{ width: 52px; padding: 0 4px; }
+    .sizer__unit{ display: none; }
+    .sizer__reset{ padding: 0 8px; }
+    .sizer__readout{
+      flex: 1 1 auto;
+      margin-left: 0;
+      font-size: 10.5px;
+    }
+    .sizer__field--ratio{ order: 1; }
+    .sizer__field--short{ order: 2; }
+    .sizer__field--long{ order: 3; }
+    .sizer__field--width{ order: 4; }
+    .sizer__field--height{ order: 5; }
+    .sizer__readout{ order: 6; }
+    .sizer__reset{ order: 7; }
+
     .placeholder{ padding: 24px; }
   }
   @media (max-width: 420px){
     .action__label{ display: none; }
     .action{ width: 32px; padding: 0; justify-content: center; }
-    .stage__name{ max-width: 48vw; }
+    .stage__brand{ max-width: 42vw; padding-right: 8px; }
+    .stage__brand-title{ font-size: 12px; letter-spacing: 1px; }
+    .stage__brand-sub{ font-size: 9.5px; }
+    .stage__name{ max-width: none; }
     .hud__value{ font-size: 10.5px; }
     .hud__zoom-value{ min-width: 36px; font-size: 11.5px; }
   }
@@ -550,12 +767,13 @@
     .tabs{ padding: 6px 8px; gap: 2px; }
     .tab{ min-height: 46px; }
     .stage__bar{ height: 40px; }
+    .stage__sizer{ padding-top: 4px; padding-bottom: 4px; }
     .stage__hud{ min-height: 38px; padding-top: 4px; padding-bottom: 4px; }
   }
 </style>
 </head>
 <body>
-  <aside class="sidebar">
+  <aside class="sidebar" id="entry-drawer" aria-label="条目浏览">
     <div class="sidebar__head">
       <div class="sidebar__brand">
         <span class="sidebar__title">单页预览</span>
@@ -563,6 +781,9 @@
       </div>
       <button class="icon-btn" id="reload" type="button" title="重新读取 config.json" aria-label="重新读取列表">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      </button>
+      <button class="icon-btn drawer__close" id="drawer-close" type="button" title="关闭条目浏览" aria-label="关闭条目浏览">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
       </button>
     </div>
     <nav class="tabs" id="tabs" aria-label="页面列表"></nav>
@@ -574,6 +795,10 @@
 
   <main class="stage">
     <div class="stage__bar">
+      <div class="stage__brand">
+        <span class="stage__brand-title">单页预览</span>
+        <span class="stage__brand-sub" id="count-top">正在读取列表…</span>
+      </div>
       <span class="stage__indicator" id="indicator"></span>
       <div class="stage__label">
         <span class="stage__name" id="current-name">尚未选择</span>
@@ -612,13 +837,57 @@
       <div class="frame-mask" id="frame-mask"><div><div class="spinner"></div>载入中…</div></div>
     </div>
 
+    <section class="stage__sizer" aria-label="iframe 尺寸限制">
+      <span class="sizer__title">尺寸</span>
+      <div class="sizer__field sizer__field--ratio">
+        <label class="sizer__label" for="size-ratio">比例</label>
+        <select class="sizer__select" id="size-ratio">
+          <option value="auto">自适应</option>
+          <option value="1:1">1:1</option>
+          <option value="4:3">4:3</option>
+          <option value="16:9">16:9</option>
+          <option value="16:10">16:10</option>
+          <option value="21:9">21:9</option>
+          <option value="actual" disabled>按宽高</option>
+        </select>
+        <button class="sizer__orient" id="size-orient" type="button" title="当前横向，点击切换为纵向" aria-label="比例方向：横向，点击切换为纵向">横向</button>
+      </div>
+      <label class="sizer__field sizer__field--short">
+        <span class="sizer__label">短边</span>
+        <select class="sizer__select" id="size-short">
+          <option value="auto">自适应</option>
+        </select>
+      </label>
+      <label class="sizer__field sizer__field--long">
+        <span class="sizer__label">长边</span>
+        <select class="sizer__select" id="size-long">
+          <option value="auto">自适应</option>
+        </select>
+      </label>
+      <label class="sizer__field sizer__field--width">
+        <span class="sizer__label">宽</span>
+        <input class="sizer__input" id="size-width" type="number" inputmode="numeric" min="1" placeholder="自适应">
+        <span class="sizer__unit">px</span>
+      </label>
+      <label class="sizer__field sizer__field--height">
+        <span class="sizer__label">高</span>
+        <input class="sizer__input" id="size-height" type="number" inputmode="numeric" min="1" placeholder="自适应">
+        <span class="sizer__unit">px</span>
+      </label>
+      <span class="sizer__readout" id="size-readout" aria-live="polite">自适应</span>
+      <button class="sizer__reset" id="size-reset" type="button" title="清除尺寸限制" aria-label="清除尺寸限制">重置</button>
+    </section>
+
     <section class="stage__hud" aria-label="预览状态与缩放控制">
+      <button class="hud__btn hud__menu" id="menu-toggle" type="button" title="浏览条目" aria-label="浏览条目" aria-controls="entry-drawer" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
+      </button>
       <div class="hud__status">
-        <div class="hud__metric" title="iframe 可见区域换算为设备像素：CSS 视口 × 缩放 × DPR">
+        <div class="hud__metric" title="预览区域换算为设备像素：CSS 视口 × 缩放 × DPR（不随 iframe 尺寸限制变化）">
           <span class="hud__key">真实分辨率</span>
           <span class="hud__value" id="metric-device">—</span>
         </div>
-        <div class="hud__metric" title="iframe 内容当前的布局视口（CSS 像素），受缩放影响">
+        <div class="hud__metric" title="预览区域的 CSS 布局视口，受缩放影响（不随 iframe 尺寸限制变化）">
           <span class="hud__key">CSS 视口</span>
           <span class="hud__value" id="metric-css">—</span>
         </div>
@@ -642,11 +911,19 @@
     </section>
   </main>
 
+  <div class="drawer__scrim" id="drawer-scrim" aria-hidden="true"></div>
+
 <script>
 (() => {
   const els = {
     tabs: document.getElementById('tabs'),
     count: document.getElementById('count'),
+    countTop: document.getElementById('count-top'),
+    sidebar: document.getElementById('entry-drawer'),
+    stage: document.querySelector('.stage'),
+    menuToggle: document.getElementById('menu-toggle'),
+    drawerClose: document.getElementById('drawer-close'),
+    drawerScrim: document.getElementById('drawer-scrim'),
     reload: document.getElementById('reload'),
     frame: document.getElementById('frame'),
     mask: document.getElementById('frame-mask'),
@@ -665,6 +942,14 @@
     metricDevice: document.getElementById('metric-device'),
     metricCss: document.getElementById('metric-css'),
     metricDpr: document.getElementById('metric-dpr'),
+    sizeRatio: document.getElementById('size-ratio'),
+    sizeOrient: document.getElementById('size-orient'),
+    sizeShort: document.getElementById('size-short'),
+    sizeLong: document.getElementById('size-long'),
+    sizeWidth: document.getElementById('size-width'),
+    sizeHeight: document.getElementById('size-height'),
+    sizeReadout: document.getElementById('size-readout'),
+    sizeReset: document.getElementById('size-reset'),
     zoomRange: document.getElementById('zoom-range'),
     zoomValue: document.getElementById('zoom-value'),
     zoomOut: document.getElementById('zoom-out'),
@@ -678,11 +963,69 @@
   const ZOOM_STORAGE_KEY = 'html-single-page-viewer:zoom';
   const DEFAULT_TITLE = '单页预览';
   const DEFAULT_TITLE_SEPARATOR = ' · ';
+  const SIZE_PRESETS = [360, 480, 720, 1080, 1920, 2160, 3840];
+  const SIZE_RATIOS = {
+    '1:1': [1, 1],
+    '4:3': [4, 3],
+    '16:9': [16, 9],
+    '16:10': [16, 10],
+    '21:9': [21, 9],
+  };
+  const RATIO_LABELS = {
+    '1:1': ['1:1', '1:1'],
+    '4:3': ['4:3', '3:4'],
+    '16:9': ['16:9', '9:16'],
+    '16:10': ['16:10', '10:16'],
+    '21:9': ['21:9', '9:21'],
+  };
+  const COMPUTED_OPTION = '__computed__';
+
+  const DRAWER_MEDIA = window.matchMedia('(max-width: 760px)');
 
   let entries = [];
   let activeIndex = null;
   let zoom = readStoredZoom();
   let titleConfig = normalizeTitleConfig();
+  let drawerOpen = false;
+  const sizeState = {
+    ratio: 'auto',
+    orientation: 'landscape',
+    short: 'auto',
+    long: 'auto',
+    width: null,
+    height: null,
+  };
+
+  function setCount(text) {
+    els.count.textContent = text;
+    els.countTop.textContent = text;
+  }
+
+  function isDrawerLayout() {
+    return DRAWER_MEDIA.matches;
+  }
+
+  function setDrawerOpen(open, { restoreFocus = true } = {}) {
+    const next = Boolean(open) && isDrawerLayout();
+    const changed = next !== drawerOpen;
+    drawerOpen = next;
+    els.sidebar.classList.toggle('is-open', next);
+    els.drawerScrim.classList.toggle('is-open', next);
+    els.menuToggle.setAttribute('aria-expanded', String(next));
+    els.stage.inert = next;
+    if (!changed) return;
+
+    if (next) {
+      requestAnimationFrame(() => {
+        const target = els.tabs.querySelector('.tab.is-active') || els.tabs.querySelector('.tab');
+        if (!target) return;
+        target.focus({ preventScroll: true });
+        target.scrollIntoView({ block: 'center' });
+      });
+    } else if (restoreFocus) {
+      els.menuToggle.focus({ preventScroll: true });
+    }
+  }
 
   function setBarState(state) {
     els.indicator.className = 'stage__indicator' +
@@ -742,53 +1085,271 @@
     els.zoomIn.disabled = zoom >= ZOOM_MAX;
   }
 
-  function updateFrameMetrics() {
-    const entry = activeIndex === null ? null : entries[activeIndex];
-    if (!entry?.src || els.frame.hidden) {
-      els.metricDevice.textContent = '—';
-      els.metricCss.textContent = '—';
-      els.metricDpr.textContent = '—';
-      return;
-    }
-
-    let cssWidth = 0;
-    let cssHeight = 0;
+  function viewportMetrics() {
+    const rect = els.frameViewport.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
     let dpr = window.devicePixelRatio || 1;
     try {
-      const view = els.frame.contentWindow;
-      if (view) {
-        cssWidth = view.innerWidth;
-        cssHeight = view.innerHeight;
-        dpr = view.devicePixelRatio || dpr;
-      }
+      dpr = els.frame.contentWindow?.devicePixelRatio || dpr;
     } catch {}
-    if (!cssWidth || !cssHeight) {
-      cssWidth = els.frame.clientWidth;
-      cssHeight = els.frame.clientHeight;
+    const scale = zoom / 100;
+    return {
+      rect,
+      dpr,
+      deviceW: rect.width * dpr,
+      deviceH: rect.height * dpr,
+      cssW: rect.width / scale,
+      cssH: rect.height / scale,
+    };
+  }
+
+  function updateSizeAvailability(metrics) {
+    const realW = Math.max(1, Math.round(metrics.deviceW));
+    const realH = Math.max(1, Math.round(metrics.deviceH));
+    const shortMax = Math.min(realW, realH);
+    const longMax = Math.max(realW, realH);
+
+    for (const [select, max] of [[els.sizeShort, shortMax], [els.sizeLong, longMax]]) {
+      for (const option of select.options) {
+        if (option.value === 'auto' || option.value === COMPUTED_OPTION) continue;
+        option.disabled = Number(option.value) > max;
+      }
+    }
+    els.sizeWidth.max = String(realW);
+    els.sizeHeight.max = String(realH);
+    els.sizeWidth.title = `最大 ${realW}px（当前真实分辨率宽度）`;
+    els.sizeHeight.title = `最大 ${realH}px（当前真实分辨率高度）`;
+
+    if (sizeState.short !== 'auto' && Number(sizeState.short) > shortMax) sizeState.short = 'auto';
+    if (sizeState.long !== 'auto' && Number(sizeState.long) > longMax) sizeState.long = 'auto';
+    if (sizeState.width != null && sizeState.width > realW) sizeState.width = realW;
+    if (sizeState.height != null && sizeState.height > realH) sizeState.height = realH;
+  }
+
+  function currentRatioParts() {
+    const base = sizeState.ratio === 'auto' ? null : (SIZE_RATIOS[sizeState.ratio] || null);
+    if (!base) return null;
+    return sizeState.orientation === 'portrait' ? [base[1], base[0]] : base;
+  }
+
+  function ratioDisplayLabel() {
+    const labels = RATIO_LABELS[sizeState.ratio];
+    if (!labels) return sizeState.ratio;
+    return labels[sizeState.orientation === 'portrait' ? 1 : 0];
+  }
+
+  function gcd(a, b) {
+    while (b) {
+      const next = a % b;
+      a = b;
+      b = next;
+    }
+    return a || 1;
+  }
+
+  function formatRatio(w, h) {
+    const iw = Math.max(1, Math.round(w));
+    const ih = Math.max(1, Math.round(h));
+    const divisor = gcd(iw, ih);
+    const rw = iw / divisor;
+    const rh = ih / divisor;
+    if (rw <= 100 && rh <= 100) return `${rw}:${rh}`;
+    return `${(iw / ih).toFixed(2)}:1`;
+  }
+
+  function computeTargetSize(metrics) {
+    const realW = Math.max(1, Math.round(metrics.deviceW));
+    const realH = Math.max(1, Math.round(metrics.deviceH));
+    const availW = Math.max(1, Math.floor(metrics.rect.width));
+    const availH = Math.max(1, Math.floor(metrics.rect.height));
+    const areaPortrait = availH >= availW;
+
+    const manualW = sizeState.width != null ? Math.min(sizeState.width, realW) : null;
+    const manualH = sizeState.height != null ? Math.min(sizeState.height, realH) : null;
+    if (manualW != null || manualH != null) {
+      return {
+        w: manualW ?? availW,
+        h: manualH ?? availH,
+        mode: 'custom',
+        limited: false,
+      };
     }
 
-    const rect = els.frame.getBoundingClientRect();
-    if (!cssWidth || !cssHeight || !rect.width || !rect.height) {
+    const shortMax = Math.min(realW, realH);
+    const longMax = Math.max(realW, realH);
+    let short = sizeState.short === 'auto' ? null : Math.min(Number(sizeState.short), shortMax);
+    let long = sizeState.long === 'auto' ? null : Math.min(Number(sizeState.long), longMax);
+    if (short != null && long != null && short > long) [short, long] = [long, short];
+
+    if (short != null && long != null) {
+      return areaPortrait
+        ? { w: short, h: long, mode: 'edges', limited: false }
+        : { w: long, h: short, mode: 'edges', limited: false };
+    }
+
+    const ratio = currentRatioParts();
+    if (ratio) {
+      const [rw, rh] = ratio;
+      const ratioShort = Math.min(rw, rh);
+      const ratioLong = Math.max(rw, rh);
+      let w;
+      let h;
+      if (short != null) {
+        long = short * (ratioLong / ratioShort);
+        [w, h] = rw >= rh ? [long, short] : [short, long];
+        return { w: Math.max(1, Math.round(w)), h: Math.max(1, Math.round(h)), mode: 'ratio-edge', limited: false };
+      }
+      if (long != null) {
+        short = long * (ratioShort / ratioLong);
+        [w, h] = rw >= rh ? [long, short] : [short, long];
+        return { w: Math.max(1, Math.round(w)), h: Math.max(1, Math.round(h)), mode: 'ratio-edge', limited: false };
+      }
+      const fit = Math.min(availW / rw, availH / rh);
+      return {
+        w: Math.max(1, Math.floor(rw * fit)),
+        h: Math.max(1, Math.floor(rh * fit)),
+        mode: 'ratio',
+        limited: false,
+      };
+    }
+
+    if (short != null) {
+      return areaPortrait
+        ? { w: short, h: availH, mode: 'edge', limited: false }
+        : { w: availW, h: short, mode: 'edge', limited: false };
+    }
+    if (long != null) {
+      return areaPortrait
+        ? { w: availW, h: long, mode: 'edge', limited: false }
+        : { w: long, h: availH, mode: 'edge', limited: false };
+    }
+    return null;
+  }
+
+  function applyFrameLayout(metrics, target) {
+    const zoomScale = zoom / 100;
+    if (!target) {
+      els.frameScaler.classList.remove('is-custom');
+      els.frameScaler.style.width = `${metrics.rect.width / zoomScale}px`;
+      els.frameScaler.style.height = `${metrics.rect.height / zoomScale}px`;
+      els.frameScaler.style.transform = `scale(${zoomScale})`;
+      return 1;
+    }
+    const fit = Math.min(1, metrics.rect.width / target.w, metrics.rect.height / target.h);
+    els.frameScaler.classList.add('is-custom');
+    els.frameScaler.style.width = `${target.w}px`;
+    els.frameScaler.style.height = `${target.h}px`;
+    els.frameScaler.style.transform = `translate(-50%, -50%) scale(${zoomScale * fit})`;
+    return fit;
+  }
+
+  function updateFrameMetricsText(metrics) {
+    const entry = activeIndex === null ? null : entries[activeIndex];
+    if (!entry?.src || els.frame.hidden || !metrics) {
       els.metricDevice.textContent = '—';
       els.metricCss.textContent = '—';
       els.metricDpr.textContent = '—';
       return;
     }
+    els.metricDevice.textContent = `${Math.round(metrics.deviceW)} × ${Math.round(metrics.deviceH)}`;
+    els.metricCss.textContent = `${Math.round(metrics.cssW)} × ${Math.round(metrics.cssH)}`;
+    els.metricDpr.textContent = String(parseFloat(metrics.dpr.toFixed(2)));
+  }
 
-    els.metricDevice.textContent =
-      `${Math.round(rect.width * dpr)} × ${Math.round(rect.height * dpr)}`;
-    els.metricCss.textContent = `${cssWidth} × ${cssHeight}`;
-    els.metricDpr.textContent = String(parseFloat(dpr.toFixed(2)));
+  function updateFrameMetrics() {
+    const metrics = viewportMetrics();
+    if (!metrics) {
+      els.metricDevice.textContent = '—';
+      els.metricCss.textContent = '—';
+      els.metricDpr.textContent = '—';
+      return;
+    }
+    updateFrameMetricsText(metrics);
+  }
+
+  function initSizeControls() {
+    for (const select of [els.sizeShort, els.sizeLong]) {
+      for (const value of SIZE_PRESETS) {
+        const option = document.createElement('option');
+        option.value = String(value);
+        option.textContent = String(value);
+        select.append(option);
+      }
+    }
+  }
+
+  function clearComputedOption(select) {
+    const option = select.querySelector(`option[value="${COMPUTED_OPTION}"]`);
+    if (option) option.remove();
+  }
+
+  function renderSizer(target, fit) {
+    const manual = sizeState.width != null || sizeState.height != null;
+    const shortSet = sizeState.short !== 'auto';
+    const longSet = sizeState.long !== 'auto';
+    const bothEdges = !manual && shortSet && longSet;
+
+    const portrait = sizeState.orientation === 'portrait';
+    for (const option of els.sizeRatio.options) {
+      const labels = RATIO_LABELS[option.value];
+      if (labels) option.textContent = labels[portrait ? 1 : 0];
+    }
+    const orientLabel = portrait ? '纵向' : '横向';
+    els.sizeOrient.textContent = orientLabel;
+    els.sizeOrient.dataset.orientation = portrait ? 'portrait' : 'landscape';
+    els.sizeOrient.title = `当前${orientLabel}，点击切换为${portrait ? '横向' : '纵向'}`;
+    els.sizeOrient.setAttribute('aria-label', `比例方向：${orientLabel}，点击切换为${portrait ? '横向' : '纵向'}`);
+
+    clearComputedOption(els.sizeShort);
+    clearComputedOption(els.sizeLong);
+
+    const ratioLocked = manual || bothEdges;
+    els.sizeRatio.disabled = false;
+    els.sizeRatio.value = ratioLocked ? 'actual' : sizeState.ratio;
+
+    els.sizeShort.value = sizeState.short === 'auto' ? 'auto' : String(sizeState.short);
+    els.sizeLong.value = sizeState.long === 'auto' ? 'auto' : String(sizeState.long);
+
+    if (!manual && !bothEdges && sizeState.ratio !== 'auto' && target) {
+      if (shortSet && !longSet) {
+        const option = document.createElement('option');
+        option.value = COMPUTED_OPTION;
+        option.textContent = `${Math.round(Math.max(target.w, target.h))}（自动）`;
+        els.sizeLong.append(option);
+        els.sizeLong.value = COMPUTED_OPTION;
+      } else if (!shortSet && longSet) {
+        const option = document.createElement('option');
+        option.value = COMPUTED_OPTION;
+        option.textContent = `${Math.round(Math.min(target.w, target.h))}（自动）`;
+        els.sizeShort.append(option);
+        els.sizeShort.value = COMPUTED_OPTION;
+      }
+    }
+
+    els.sizeWidth.value = sizeState.width == null ? '' : String(sizeState.width);
+    els.sizeHeight.value = sizeState.height == null ? '' : String(sizeState.height);
+
+    let text = '自适应';
+    if (target) {
+      const ratioText = !manual && !bothEdges && sizeState.ratio !== 'auto'
+        ? ratioDisplayLabel()
+        : formatRatio(target.w, target.h);
+      text = `${Math.round(target.w)} × ${Math.round(target.h)} · ${ratioText}`;
+      if (target.limited) text += ' · 已限制';
+      if (fit < 0.995) text += ` · 适配 ${Math.round(fit * 100)}%`;
+    }
+    els.sizeReadout.textContent = text;
+    els.sizeReadout.title = text;
   }
 
   function layoutFrame() {
-    const rect = els.frameViewport.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const scale = zoom / 100;
-    els.frameScaler.style.width = `${rect.width / scale}px`;
-    els.frameScaler.style.height = `${rect.height / scale}px`;
-    els.frameScaler.style.transform = `scale(${scale})`;
-    updateFrameMetrics();
+    const metrics = viewportMetrics();
+    if (!metrics) return;
+    updateSizeAvailability(metrics);
+    const target = computeTargetSize(metrics);
+    const fit = applyFrameLayout(metrics, target);
+    updateFrameMetricsText(metrics);
+    renderSizer(target, fit);
   }
 
   let layoutScheduled = false;
@@ -817,6 +1378,82 @@
     layoutFrame();
     if (persist) persistZoom();
   }
+
+  function handleEdgeChange(which) {
+    const select = which === 'short' ? els.sizeShort : els.sizeLong;
+    if (select.value === COMPUTED_OPTION) {
+      layoutFrame();
+      return;
+    }
+    sizeState[which] = select.value === 'auto' ? 'auto' : Number(select.value);
+    sizeState.width = null;
+    sizeState.height = null;
+    els.sizeWidth.value = '';
+    els.sizeHeight.value = '';
+    if (sizeState.short !== 'auto' && sizeState.long !== 'auto') {
+      if (Number(sizeState.short) > Number(sizeState.long)) {
+        [sizeState.short, sizeState.long] = [sizeState.long, sizeState.short];
+      }
+      sizeState.ratio = 'auto';
+    }
+    layoutFrame();
+  }
+
+  function handleManualSizeChange() {
+    const metrics = viewportMetrics();
+    const realW = metrics ? Math.max(1, Math.round(metrics.deviceW)) : Infinity;
+    const realH = metrics ? Math.max(1, Math.round(metrics.deviceH)) : Infinity;
+    const read = (value) => {
+      const number = Number(value);
+      return Number.isFinite(number) && number > 0 ? Math.floor(number) : null;
+    };
+    let width = read(els.sizeWidth.value);
+    let height = read(els.sizeHeight.value);
+    if (width != null) width = Math.min(width, realW);
+    if (height != null) height = Math.min(height, realH);
+
+    sizeState.ratio = 'auto';
+    sizeState.short = 'auto';
+    sizeState.long = 'auto';
+    sizeState.width = width;
+    sizeState.height = height;
+    els.sizeWidth.value = width == null ? '' : String(width);
+    els.sizeHeight.value = height == null ? '' : String(height);
+    layoutFrame();
+  }
+
+  els.sizeRatio.addEventListener('change', () => {
+    const value = els.sizeRatio.value;
+    if (value === 'actual') return;
+    sizeState.width = null;
+    sizeState.height = null;
+    els.sizeWidth.value = '';
+    els.sizeHeight.value = '';
+    if (value !== 'auto' && sizeState.short !== 'auto' && sizeState.long !== 'auto') {
+      sizeState.long = 'auto';
+    }
+    sizeState.ratio = value;
+    layoutFrame();
+  });
+  els.sizeOrient.addEventListener('click', () => {
+    sizeState.orientation = sizeState.orientation === 'portrait' ? 'landscape' : 'portrait';
+    layoutFrame();
+  });
+  els.sizeShort.addEventListener('change', () => handleEdgeChange('short'));
+  els.sizeLong.addEventListener('change', () => handleEdgeChange('long'));
+  els.sizeWidth.addEventListener('change', handleManualSizeChange);
+  els.sizeHeight.addEventListener('change', handleManualSizeChange);
+  els.sizeReset.addEventListener('click', () => {
+    sizeState.ratio = 'auto';
+    sizeState.orientation = 'landscape';
+    sizeState.short = 'auto';
+    sizeState.long = 'auto';
+    sizeState.width = null;
+    sizeState.height = null;
+    els.sizeWidth.value = '';
+    els.sizeHeight.value = '';
+    layoutFrame();
+  });
 
   function showPlaceholder(title, text) {
     els.placeholderTitle.textContent = title;
@@ -855,7 +1492,7 @@
     for (const tab of els.tabs.children) {
       const isActive = Number(tab.dataset.index) === index;
       tab.classList.toggle('is-active', isActive);
-      if (isActive) tab.scrollIntoView({ block: 'nearest' });
+      if (isActive && (!isDrawerLayout() || drawerOpen)) tab.scrollIntoView({ block: 'nearest' });
     }
 
     els.currentName.textContent = entry.title || entry.displayPath;
@@ -905,7 +1542,10 @@
       button.querySelector('.tab__title').textContent = entry.title || entry.displayPath;
       button.querySelector('.tab__path').textContent = entry.displayPath;
       button.querySelector('.tab__state').textContent = entry.error ? '!' : '';
-      button.addEventListener('click', () => selectEntry(index));
+      button.addEventListener('click', () => {
+        selectEntry(index);
+        if (drawerOpen) setDrawerOpen(false);
+      });
       els.tabs.append(button);
     });
   }
@@ -992,9 +1632,9 @@
       titleConfig = parsed.titleConfig;
       renderTabs();
       const usable = entries.filter((entry) => entry.src).length;
-      els.count.textContent = entries.length
+      setCount(entries.length
         ? `${entries.length} 个条目 · ${usable} 个可用`
-        : '列表为空';
+        : '列表为空');
 
       if (previousPath) {
         const index = entries.findIndex((entry) => entry.displayPath === previousPath);
@@ -1011,7 +1651,7 @@
       titleConfig = normalizeTitleConfig();
       applyDocumentTitle();
       els.tabs.replaceChildren();
-      els.count.textContent = '读取失败';
+      setCount('读取失败');
       const item = document.createElement('div');
       item.className = 'placeholder';
       item.style.height = 'auto';
@@ -1026,6 +1666,12 @@
   }
 
   els.reload.addEventListener('click', () => load({ keepSelection: true }));
+  els.menuToggle.addEventListener('click', () => setDrawerOpen(!drawerOpen));
+  els.drawerClose.addEventListener('click', () => setDrawerOpen(false));
+  els.drawerScrim.addEventListener('click', () => setDrawerOpen(false));
+  DRAWER_MEDIA.addEventListener('change', () => {
+    if (!DRAWER_MEDIA.matches) setDrawerOpen(false, { restoreFocus: false });
+  });
 
   els.refreshFrame.addEventListener('click', () => {
     if (activeIndex === null) return;
@@ -1040,7 +1686,7 @@
     if (!els.frame.hidden) setBarState('ok');
     scheduleLayout();
     try {
-      els.frame.contentWindow?.addEventListener('resize', updateFrameMetrics);
+      els.frame.contentWindow?.addEventListener('resize', scheduleLayout);
     } catch {}
   });
 
@@ -1073,6 +1719,11 @@
   });
 
   document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && drawerOpen) {
+      event.preventDefault();
+      setDrawerOpen(false);
+      return;
+    }
     if (event.target instanceof HTMLElement && /^(INPUT|TEXTAREA)$/.test(event.target.tagName)) return;
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
     if (!entries.length) return;
@@ -1083,6 +1734,7 @@
     if (next >= 0 && next < entries.length) selectEntry(next);
   });
 
+  initSizeControls();
   updateZoomReadout();
   layoutFrame();
   applyDocumentTitle();
