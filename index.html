@@ -1238,6 +1238,7 @@
   };
   const COMPUTED_OPTION = '__computed__';
   const MASK_DELAY_MS = 140;
+  const SLOW_FRAME_LOAD_MS = 4000;
   const LAYOUT_ANIMATION_MS = 300;
   const TOAST_DURATION_MS = 1800;
   const DRAWER_SWIPE_LOCK_PX = 8;
@@ -1266,11 +1267,17 @@
     height: null,
   };
   let maskTimer = 0;
+  let slowLoadTimer = 0;
+  let frameLoadDetail = '正在载入…';
   let layoutAnimationTimer = 0;
   // 当前布局的适配系数（1 表示完整适配/自适应），用于判定尺寸切换是否允许过渡。
   let currentLayoutFit = 1;
   let toastTimer = 0;
   let loadStatusText = '';
+  let loadInFlight = false;
+  let loadGeneration = 0;
+  let activeLoadController = null;
+  let listLoadedOnce = false;
 
   function setCount(text) {
     els.count.textContent = text;
@@ -2112,9 +2119,16 @@
     els.frameViewport.setAttribute('aria-busy', busy ? 'true' : 'false');
   }
 
+  function clearSlowLoadTimer() {
+    clearTimeout(slowLoadTimer);
+    slowLoadTimer = 0;
+    els.maskText.textContent = frameLoadDetail;
+  }
+
   function stopFrameLoad() {
     clearTimeout(maskTimer);
     maskTimer = 0;
+    clearSlowLoadTimer();
     els.loadbar.hidden = true;
     els.mask.classList.remove('is-visible');
     els.frame.classList.remove('is-loaded');
@@ -2125,7 +2139,14 @@
     setFrameBusy(true);
     els.loadbar.hidden = false;
     els.frame.classList.remove('is-loaded');
-    els.maskText.textContent = `正在载入 ${entry.title || entry.displayPath}…`;
+    frameLoadDetail = `正在载入 ${entry.title || entry.displayPath}…`;
+    els.maskText.textContent = frameLoadDetail;
+    clearTimeout(slowLoadTimer);
+    slowLoadTimer = setTimeout(() => {
+      slowLoadTimer = 0;
+      if (els.frameViewport.getAttribute('aria-busy') !== 'true') return;
+      els.maskText.textContent = '仍在载入，可点击顶部「重载」重试…';
+    }, SLOW_FRAME_LOAD_MS);
     if (els.mask.classList.contains('is-visible')) return;
     clearTimeout(maskTimer);
     maskTimer = setTimeout(() => {
@@ -2138,6 +2159,7 @@
   function finishFrameLoad() {
     clearTimeout(maskTimer);
     maskTimer = 0;
+    clearSlowLoadTimer();
     els.loadbar.hidden = true;
     els.mask.classList.remove('is-visible');
     els.frame.classList.add('is-loaded');
@@ -2185,7 +2207,7 @@
     }
   }
 
-  function selectEntry(index, { updateLocation = true } = {}) {
+  function selectEntry(index, { updateLocation = true, scrollTab = true } = {}) {
     const entry = entries[index];
     if (!entry) return;
     activeIndex = index;
@@ -2196,7 +2218,7 @@
       tab.classList.toggle('is-active', isActive);
       if (isActive) tab.setAttribute('aria-current', 'page');
       else tab.removeAttribute('aria-current');
-      if (isActive && (!isDrawerLayout() || drawerOpen)) {
+      if (isActive && scrollTab && (!isDrawerLayout() || drawerOpen)) {
         tab.scrollIntoView({ block: 'nearest', behavior: scrollBehavior() });
       }
     }
@@ -2257,6 +2279,18 @@
     });
   }
 
+  function resetSelectionUI() {
+    activeIndex = null;
+    applyDocumentTitle();
+    els.currentName.textContent = '尚未选择';
+    els.currentSrc.textContent = '';
+    els.currentSrc.title = '';
+    els.frame.title = '页面预览';
+    els.openRaw.setAttribute('aria-disabled', 'true');
+    els.openRaw.href = '#';
+    els.refreshFrame.setAttribute('aria-disabled', 'true');
+  }
+
   function applyHashOnLoad() {
     const match = window.location.hash.match(/^#\/entry\/(\d+)$/);
     const hashIndex = match ? Number(match[1]) : null;
@@ -2289,8 +2323,8 @@
     }
   }
 
-  async function buildEntries() {
-    const response = await fetch('config.json', { cache: 'no-store' });
+  async function buildEntries(signal) {
+    const response = await fetch('config.json', { cache: 'no-store', signal });
     if (!response.ok) throw new Error(`config.json HTTP ${response.status}`);
     const data = await response.json();
     const items = Array.isArray(data) ? data : data?.entries;
@@ -2317,7 +2351,7 @@
 
       const src = toUrl(displayPath);
       try {
-        const file = await fetch(src, { cache: 'no-store' });
+        const file = await fetch(src, { cache: 'no-store', signal });
         if (!file.ok) {
           return {
             ...base,
@@ -2327,7 +2361,9 @@
         }
         const detected = readTitle(await file.text());
         return { ...base, title: base.title || detected || baseName(displayPath), src };
-      } catch {
+      } catch (error) {
+        // 取消请求不得伪装成条目错误，否则会被当作“文件不存在”静默吞掉。
+        if (signal?.aborted || error?.name === 'AbortError') throw error;
         return { ...base, title: base.title || baseName(displayPath), error: '文件不存在或无法访问' };
       }
     }));
@@ -2335,53 +2371,100 @@
     return { entries: built, titleConfig: normalizeTitleConfig(rawTitle) };
   }
 
-  async function load({ keepSelection = false, notify = false } = {}) {
-    const previousPath = keepSelection && activeIndex !== null ? entries[activeIndex]?.displayPath : null;
+  async function load({ notify = false } = {}) {
+    if (loadInFlight) return;
+    loadInFlight = true;
+    // 防御性取消：正常单飞路径不会走到这里，但保证任何被更新请求取代的旧加载都被丢弃。
+    activeLoadController?.abort();
+    const generation = ++loadGeneration;
+    const controller = new AbortController();
+    activeLoadController = controller;
+
+    const previousPath = activeIndex === null ? null : (entries[activeIndex]?.displayPath ?? null);
+    const hadList = listLoadedOnce;
+    const tabsScrollTop = els.tabs.scrollTop;
+    const focusWasInTabs = els.tabs.contains(document.activeElement);
     let loaded = false;
+
     els.reload.classList.add('is-loading', 'spinning');
     try {
-      const parsed = await buildEntries();
+      const parsed = await buildEntries(controller.signal);
+      if (generation !== loadGeneration || controller.signal.aborted) return;
+
       entries = parsed.entries;
       titleConfig = parsed.titleConfig;
       renderTabs();
       const usable = entries.filter((entry) => entry.src).length;
-      setCount(entries.length
-        ? `${entries.length} 个条目 · ${usable} 个可用`
-        : '列表为空');
+      setCount(entries.length ? `${entries.length} 个条目 · ${usable} 个可用` : '列表为空');
+      listLoadedOnce = true;
       loaded = true;
 
-      if (previousPath) {
-        const index = entries.findIndex((entry) => entry.displayPath === previousPath);
-        if (index >= 0) {
-          selectEntry(index, { updateLocation: false });
-          return;
+      if (entries.length === 0) {
+        resetSelectionUI();
+        showPlaceholder(
+          '列表为空',
+          '在 config.json 的 entries 中添加 HTML 页面路径，然后点击左上角的刷新按钮重新读取。',
+        );
+      } else if (usable === 0) {
+        resetSelectionUI();
+        showPlaceholder(
+          '没有可用条目',
+          '列表中的路径都无法访问，请检查路径是否指向站点内的 HTML 文件。',
+        );
+      } else {
+        let preserved = false;
+        if (previousPath) {
+          const index = entries.findIndex((entry) => entry.displayPath === previousPath);
+          if (index >= 0) {
+            selectEntry(index, { updateLocation: false, scrollTab: false });
+            updateHash();
+            preserved = true;
+          }
+        }
+        if (!preserved) {
+          activeIndex = null;
+          applyHashOnLoad();
+          if (activeIndex === null) applyDocumentTitle();
         }
       }
-      activeIndex = null;
-      applyHashOnLoad();
-      if (activeIndex === null) applyDocumentTitle();
+
+      els.tabs.scrollTop = tabsScrollTop;
+      if (focusWasInTabs && activeIndex !== null) {
+        els.tabs.querySelector('.tab.is-active')?.focus({ preventScroll: true });
+      }
     } catch (error) {
-      entries = [];
-      titleConfig = normalizeTitleConfig();
-      applyDocumentTitle();
-      els.tabs.replaceChildren();
-      setCount('读取失败');
-      const item = document.createElement('div');
-      item.className = 'placeholder';
-      item.style.height = 'auto';
-      item.style.padding = '24px 16px';
-      item.innerHTML = '<p class="err"></p>';
-      item.querySelector('.err').textContent = `读取 config.json 失败：${error.message}`;
-      els.tabs.append(item);
-      showPlaceholder('列表不可用', `无法读取配置：${error.message}`);
+      // 被取消或被更新请求取代的加载不提示、不改 UI。
+      if (generation !== loadGeneration || controller.signal.aborted || error?.name === 'AbortError') return;
+      if (hadList) {
+        // 已有列表时保留旧列表与当前预览，只提示失败。
+        showToast('读取失败，已保留上次列表');
+      } else {
+        entries = [];
+        titleConfig = normalizeTitleConfig();
+        applyDocumentTitle();
+        els.tabs.replaceChildren();
+        setCount('读取失败');
+        const item = document.createElement('div');
+        item.className = 'placeholder';
+        item.style.height = 'auto';
+        item.style.padding = '24px 16px';
+        item.innerHTML = '<p class="err"></p>';
+        item.querySelector('.err').textContent = `读取 config.json 失败：${error.message}`;
+        els.tabs.append(item);
+        showPlaceholder('列表不可用', `无法读取配置：${error.message}`);
+      }
     } finally {
-      els.reload.classList.remove('is-loading', 'spinning');
-      els.tabs.setAttribute('aria-busy', 'false');
-      if (notify && loaded) showToast(`已更新列表 · ${entries.length} 个条目`);
+      if (generation === loadGeneration) {
+        loadInFlight = false;
+        activeLoadController = null;
+        els.reload.classList.remove('is-loading', 'spinning');
+        els.tabs.setAttribute('aria-busy', 'false');
+        if (notify && loaded) showToast(`已更新列表 · ${entries.length} 个条目`);
+      }
     }
   }
 
-  els.reload.addEventListener('click', () => load({ keepSelection: true, notify: true }));
+  els.reload.addEventListener('click', () => load({ notify: true }));
   els.menuToggle.addEventListener('click', () => setDrawerOpen(!drawerOpen));
   els.drawerClose.addEventListener('click', () => setDrawerOpen(false));
   els.drawerScrim.addEventListener('click', () => setDrawerOpen(false));
@@ -2465,6 +2548,9 @@
     // 非法/越界 hash：仅把地址修正回当前激活条目，不报错、不破坏当前预览。
     updateHash();
   });
+
+  window.addEventListener('offline', () => showToast('网络已断开，预览可能不可用'));
+  window.addEventListener('online', () => showToast('网络已恢复'));
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && drawerOpen) {
