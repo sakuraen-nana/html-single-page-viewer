@@ -103,6 +103,14 @@
   .icon-btn:active:not(.is-loading){ transform: scale(.94); background: var(--panel-2); }
   .icon-btn svg{ width: 15px; height: 15px; }
   .drawer__close{ display: none; }
+  .drawer__grabber{
+    display: none;
+    flex: none;
+    width: 36px; height: 4px;
+    margin: 6px auto 2px;
+    border-radius: 999px;
+    background: var(--line);
+  }
 
   .tabs{
     flex: 1;
@@ -819,6 +827,7 @@
       transform: translateX(-102%);
       visibility: hidden;
       pointer-events: none;
+      touch-action: pan-y;
       transition:
         transform var(--dur-3) var(--ease-out),
         visibility 0s linear var(--dur-3);
@@ -830,6 +839,13 @@
       pointer-events: auto;
       transition: transform var(--dur-3) var(--ease-out);
     }
+    .sidebar.is-dragging{
+      transition: none;
+      user-select: none;
+      -webkit-user-select: none;
+      cursor: grabbing;
+    }
+    .drawer__grabber{ display: block; }
     .sidebar__head{ padding: 10px 12px 8px; gap: 6px; }
     .sidebar__foot{ display: none; }
     .icon-btn{ width: 44px; height: 44px; }
@@ -995,6 +1011,7 @@
 </head>
 <body>
   <aside class="sidebar" id="entry-drawer" aria-label="条目浏览">
+    <div class="drawer__grabber" aria-hidden="true"></div>
     <div class="sidebar__head">
       <div class="sidebar__brand">
         <span class="sidebar__title">单页预览</span>
@@ -1221,6 +1238,11 @@
   const MASK_DELAY_MS = 140;
   const LAYOUT_ANIMATION_MS = 300;
   const TOAST_DURATION_MS = 1800;
+  const DRAWER_SWIPE_LOCK_PX = 8;
+  const DRAWER_CLOSE_RATIO = 0.25;
+  const DRAWER_CLOSE_VELOCITY = -0.5;
+  const DRAWER_SWIPE_ANIM_MS = 220;
+  const DRAWER_CLICK_GUARD_MS = 350;
 
   const DRAWER_MEDIA = window.matchMedia('(max-width: 760px)');
   const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -1230,6 +1252,9 @@
   let zoom = readStoredZoom();
   let titleConfig = normalizeTitleConfig();
   let drawerOpen = false;
+  let drawerSwipe = null;
+  let drawerCloseAnimation = null;
+  let drawerClickGuardUntil = 0;
   const sizeState = {
     ratio: 'auto',
     orientation: 'landscape',
@@ -1290,8 +1315,182 @@
     return -1;
   }
 
+  function drawerFocusables() {
+    const selector = [
+      'a[href]',
+      'button:not([disabled])',
+      'input:not([disabled]):not([type="hidden"])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])',
+    ].join(', ');
+    return Array.from(els.sidebar.querySelectorAll(selector)).filter(
+      (element) => element.getClientRects().length > 0,
+    );
+  }
+
+  function eventTime(event) {
+    const stamp = Number(event.timeStamp);
+    return Number.isFinite(stamp) && stamp > 0 ? stamp : performance.now();
+  }
+
+  function releaseDrawerPointer(pointerId) {
+    try {
+      if (pointerId != null && els.sidebar.hasPointerCapture?.(pointerId)) {
+        els.sidebar.releasePointerCapture(pointerId);
+      }
+    } catch {}
+  }
+
+  function cancelDrawerCloseAnimation() {
+    if (!drawerCloseAnimation) return;
+    try { drawerCloseAnimation.cancel(); } catch {}
+    drawerCloseAnimation = null;
+  }
+
+  function resetDrawerSwipeState() {
+    if (drawerSwipe) {
+      releaseDrawerPointer(drawerSwipe.pointerId);
+      drawerSwipe = null;
+    }
+    cancelDrawerCloseAnimation();
+    els.sidebar.classList.remove('is-dragging');
+    els.sidebar.style.removeProperty('transform');
+  }
+
+  function guardDrawerClick() {
+    drawerClickGuardUntil = performance.now() + DRAWER_CLICK_GUARD_MS;
+  }
+
+  function finishDrawerSwipeClose(animation) {
+    if (drawerCloseAnimation !== animation) return;
+    drawerCloseAnimation = null;
+    setDrawerOpen(false);
+    try { animation.cancel(); } catch {}
+  }
+
+  function startDrawerSwipeClose(offset) {
+    if (REDUCED_MOTION.matches) {
+      resetDrawerSwipeState();
+      setDrawerOpen(false);
+      return;
+    }
+    const from = `translateX(${offset}px)`;
+    els.sidebar.classList.add('is-dragging');
+    els.sidebar.style.transform = from;
+    let animation;
+    try {
+      animation = els.sidebar.animate(
+        [{ transform: from }, { transform: 'translateX(-102%)' }],
+        {
+          duration: DRAWER_SWIPE_ANIM_MS,
+          easing: 'cubic-bezier(.2, .8, .2, 1)',
+          fill: 'forwards',
+        },
+      );
+    } catch {
+      resetDrawerSwipeState();
+      setDrawerOpen(false);
+      return;
+    }
+    drawerCloseAnimation = animation;
+    animation.finished.then(
+      () => finishDrawerSwipeClose(animation),
+      () => {},
+    );
+  }
+
+  function handleDrawerPointerDown(event) {
+    if (!drawerOpen || !isDrawerLayout()) return;
+    if (event.button !== 0 || event.isPrimary === false) return;
+    if (drawerCloseAnimation) return;
+    if (drawerSwipe) resetDrawerSwipeState();
+    const time = eventTime(event);
+    drawerSwipe = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      width: els.sidebar.getBoundingClientRect().width || 1,
+      samples: [{ x: event.clientX, t: time }],
+      active: false,
+    };
+  }
+
+  function handleDrawerPointerMove(event) {
+    const swipe = drawerSwipe;
+    if (!swipe || event.pointerId !== swipe.pointerId) return;
+    if (!drawerOpen || !isDrawerLayout()) {
+      resetDrawerSwipeState();
+      return;
+    }
+    const dx = event.clientX - swipe.startX;
+    const dy = event.clientY - swipe.startY;
+    if (!swipe.active) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < DRAWER_SWIPE_LOCK_PX) return;
+      // 只有明确向左的横向手势才接管；纵向滚动与向右拖保持原生行为。
+      if (Math.abs(dx) <= Math.abs(dy) || dx >= 0) {
+        drawerSwipe = null;
+        return;
+      }
+      swipe.active = true;
+      els.sidebar.classList.add('is-dragging');
+      try { els.sidebar.setPointerCapture(event.pointerId); } catch {}
+    }
+    if (event.cancelable) event.preventDefault();
+    const offset = Math.min(0, Math.max(-swipe.width, dx));
+    els.sidebar.style.transform = `translateX(${offset}px)`;
+    swipe.samples.push({ x: event.clientX, t: eventTime(event) });
+    const cutoff = eventTime(event) - 100;
+    while (swipe.samples.length > 2 && swipe.samples[0].t < cutoff) swipe.samples.shift();
+  }
+
+  function handleDrawerPointerUp(event) {
+    const swipe = drawerSwipe;
+    if (!swipe || event.pointerId !== swipe.pointerId) return;
+    if (!swipe.active) {
+      drawerSwipe = null;
+      return;
+    }
+    const width = swipe.width || els.sidebar.getBoundingClientRect().width || 1;
+    const offset = Math.min(0, Math.max(-width, event.clientX - swipe.startX));
+    const first = swipe.samples[0];
+    const last = { x: event.clientX, t: eventTime(event) };
+    const elapsed = last.t - first.t;
+    const velocity = elapsed > 0 ? (last.x - first.x) / elapsed : 0;
+    releaseDrawerPointer(swipe.pointerId);
+    drawerSwipe = null;
+    guardDrawerClick();
+    const shouldClose =
+      Math.abs(offset) > width * DRAWER_CLOSE_RATIO ||
+      (velocity < DRAWER_CLOSE_VELOCITY && offset < 0);
+    if (shouldClose) {
+      startDrawerSwipeClose(offset);
+      return;
+    }
+    els.sidebar.classList.remove('is-dragging');
+    els.sidebar.style.removeProperty('transform');
+  }
+
+  function handleDrawerPointerCancel(event) {
+    if (!drawerSwipe || event.pointerId !== drawerSwipe.pointerId) return;
+    if (drawerSwipe.active) guardDrawerClick();
+    resetDrawerSwipeState();
+  }
+
+  function handleDrawerWindowBlur() {
+    if (drawerSwipe || drawerCloseAnimation) resetDrawerSwipeState();
+  }
+
+  function handleDrawerClickGuard(event) {
+    if (performance.now() >= drawerClickGuardUntil) return;
+    if (!els.sidebar.contains(event.target)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }
+
   function setDrawerOpen(open, { restoreFocus = true } = {}) {
     const next = Boolean(open) && isDrawerLayout();
+    if (!next) resetDrawerSwipeState();
     const changed = next !== drawerOpen;
     drawerOpen = next;
     els.sidebar.classList.toggle('is-open', next);
@@ -1301,11 +1500,16 @@
     if (!changed) return;
 
     if (next) {
+      // 等待抽屉可见性在下一帧生效后再聚焦；reduced-motion 下继承的 visibility
+      // 会比侧栏晚一帧变可见，单次 rAF 聚焦会落在隐藏按钮上而失败。
       requestAnimationFrame(() => {
-        const target = els.tabs.querySelector('.tab.is-active') || els.tabs.querySelector('.tab');
-        if (!target) return;
-        target.focus({ preventScroll: true });
-        target.scrollIntoView({ block: 'center', behavior: scrollBehavior() });
+        requestAnimationFrame(() => {
+          if (!drawerOpen) return;
+          const target = els.tabs.querySelector('.tab.is-active') || els.tabs.querySelector('.tab');
+          if (!target || !target.getClientRects().length) return;
+          target.focus({ preventScroll: true });
+          target.scrollIntoView({ block: 'center', behavior: scrollBehavior() });
+        });
       });
     } else if (restoreFocus) {
       els.menuToggle.focus({ preventScroll: true });
@@ -2056,7 +2260,14 @@
   els.menuToggle.addEventListener('click', () => setDrawerOpen(!drawerOpen));
   els.drawerClose.addEventListener('click', () => setDrawerOpen(false));
   els.drawerScrim.addEventListener('click', () => setDrawerOpen(false));
+  els.sidebar.addEventListener('pointerdown', handleDrawerPointerDown);
+  window.addEventListener('pointermove', handleDrawerPointerMove, { passive: false });
+  window.addEventListener('pointerup', handleDrawerPointerUp);
+  window.addEventListener('pointercancel', handleDrawerPointerCancel);
+  window.addEventListener('blur', handleDrawerWindowBlur);
+  document.addEventListener('click', handleDrawerClickGuard, true);
   DRAWER_MEDIA.addEventListener('change', () => {
+    resetDrawerSwipeState();
     if (!DRAWER_MEDIA.matches) setDrawerOpen(false, { restoreFocus: false });
   });
 
@@ -2130,6 +2341,24 @@
     if (event.key === 'Escape' && drawerOpen) {
       event.preventDefault();
       setDrawerOpen(false);
+      return;
+    }
+    if (event.key === 'Tab' && drawerOpen) {
+      const focusables = drawerFocusables();
+      if (!focusables.length) return;
+      const index = focusables.indexOf(document.activeElement);
+      if (index === -1) {
+        event.preventDefault();
+        focusables[0].focus({ preventScroll: true });
+        return;
+      }
+      if (!event.shiftKey && index === focusables.length - 1) {
+        event.preventDefault();
+        focusables[0].focus({ preventScroll: true });
+      } else if (event.shiftKey && index === 0) {
+        event.preventDefault();
+        focusables[focusables.length - 1].focus({ preventScroll: true });
+      }
       return;
     }
     const navigationKeys = ['ArrowDown', 'ArrowUp', 'Home', 'End'];
