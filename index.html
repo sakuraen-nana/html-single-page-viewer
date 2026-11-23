@@ -977,6 +977,8 @@
     .sizer__reset{ order: 7; }
 
     .placeholder{ padding: 24px; }
+    /* 抽屉头部按钮底边约 66px；移动端 toast 下移，避免遮住刷新/关闭按钮 */
+    .toast{ top: calc(env(safe-area-inset-top) + 72px); }
   }
   @media (max-width: 420px){
     .action__label{ display: none; }
@@ -1524,10 +1526,12 @@
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (!drawerOpen) return;
-          const target = els.tabs.querySelector('.tab.is-active') || els.tabs.querySelector('.tab');
+          const activeTab = els.tabs.querySelector('.tab.is-active') || els.tabs.querySelector('.tab');
+          // 空配置/全无效时没有条目，回退到抽屉关闭按钮，避免焦点停在 BODY。
+          const target = activeTab || els.drawerClose;
           if (!target || !target.getClientRects().length) return;
           target.focus({ preventScroll: true });
-          target.scrollIntoView({ block: 'center', behavior: scrollBehavior() });
+          if (activeTab) activeTab.scrollIntoView({ block: 'center', behavior: scrollBehavior() });
         });
       });
     } else if (restoreFocus) {
@@ -2145,7 +2149,7 @@
     slowLoadTimer = setTimeout(() => {
       slowLoadTimer = 0;
       if (els.frameViewport.getAttribute('aria-busy') !== 'true') return;
-      els.maskText.textContent = '仍在载入，可点击顶部「重载」重试…';
+      els.maskText.textContent = '仍在载入，可点击顶部的重载图标重试…';
     }, SLOW_FRAME_LOAD_MS);
     if (els.mask.classList.contains('is-visible')) return;
     clearTimeout(maskTimer);
@@ -2403,7 +2407,9 @@
         resetSelectionUI();
         showPlaceholder(
           '列表为空',
-          '在 config.json 的 entries 中添加 HTML 页面路径，然后点击左上角的刷新按钮重新读取。',
+          isDrawerLayout()
+            ? '在 config.json 的 entries 中添加 HTML 页面路径，然后打开左侧条目抽屉，点击顶部的刷新按钮重新读取。'
+            : '在 config.json 的 entries 中添加 HTML 页面路径，然后点击左上角的刷新按钮重新读取。',
         );
       } else if (usable === 0) {
         resetSelectionUI();
