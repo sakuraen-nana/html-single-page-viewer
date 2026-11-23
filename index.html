@@ -169,6 +169,7 @@
   .tab{
     position: relative;
     display: grid;
+    scroll-margin-block: 8px;
     grid-template-columns: 28px minmax(0, 1fr) 16px;
     align-items: center;
     gap: 10px;
@@ -1362,6 +1363,14 @@
     drawerClickGuardUntil = performance.now() + DRAWER_CLICK_GUARD_MS;
   }
 
+  function focusActiveDrawerTab() {
+    if (!drawerOpen || !isDrawerLayout()) return;
+    const activeTab = els.tabs.querySelector('.tab.is-active');
+    if (activeTab && activeTab.getClientRects().length) {
+      activeTab.focus({ preventScroll: true });
+    }
+  }
+
   function finishDrawerSwipeClose(animation) {
     if (drawerCloseAnimation !== animation) return;
     drawerCloseAnimation = null;
@@ -1469,12 +1478,14 @@
     }
     els.sidebar.classList.remove('is-dragging');
     els.sidebar.style.removeProperty('transform');
+    focusActiveDrawerTab();
   }
 
   function handleDrawerPointerCancel(event) {
     if (!drawerSwipe || event.pointerId !== drawerSwipe.pointerId) return;
     if (drawerSwipe.active) guardDrawerClick();
     resetDrawerSwipeState();
+    focusActiveDrawerTab();
   }
 
   function handleDrawerWindowBlur() {
